@@ -9,8 +9,8 @@ data{
   real<lower=0> duration[N_rows];
   int<lower=1> N_pixels;
   int<lower=1, upper=N_pixels> id_pixel[N_pixels];
-  vector<lower=1, upper=N_pixels>[N_pixels] x_pixel;
-  vector<lower=1, upper=N_pixels>[N_pixels] y_pixel;
+  vector[N_pixels] x_pixel;
+  vector[N_pixels] y_pixel;
   vector[N_pixels] log_val_pixel;
   real log_area_pixel;
   int<lower=1,upper=N_pixels> which_pixel[N_rows];
@@ -44,6 +44,6 @@ model{
   target += sum(log_lik_xy);
   target += sum(wald_log_lik);
   
-  alpha ~ normal(1, 2);
+  alpha ~ normal(2, 2);
   sigma_attention ~ gamma(2, 0.02);
 }
