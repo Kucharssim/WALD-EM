@@ -46,3 +46,11 @@ rtnorm <- function(n=1, mean=0, sd=1, lb = 0, ub = Inf){
   
   qnorm(pp, mean, sd)
 }
+
+my_sapply <- function(X, FUN, ...){
+  ll <- lapply(X, FUN, ...)
+  ll <- do.call(rbind, ll)
+  ll <- as.data.frame(ll)
+  
+  return(ll)
+}

@@ -36,7 +36,8 @@ simulate <- function(t_max, sigma_a, alpha){
   counter <- 0
   
   f <- x <- y <- d <- numeric()
-  while(cum_t < t_max){
+  #while(cum_t < t_max){
+  while(length(f) < t_max){
     fix <- sample.int(nrow(saldf), 1, prob = saldf$s_norm)
     dist <- (saldf$x - saldf$x[fix])^2 + (saldf$y - saldf$y[fix])^2
     dist <- dist / 2
@@ -54,17 +55,23 @@ simulate <- function(t_max, sigma_a, alpha){
   return(data.frame(f = f, x = x, y = y, d = d, alpha = alpha, sigma_a = sigma_a))
 }
 
-sim_data <- replicate(1000, simulate(10, rgamma(1, shape = 25, rate = 0.25), alpha = rtnorm(1, 2, 2)), simplify = FALSE)
+sim_data <- replicate(100, simulate(10, rgamma(1, shape = 5, rate = 0.1), alpha = rtnorm(1, 2, 1)), simplify = FALSE)
+sim_par  <- my_sapply(sim_data, function(s) c(alpha = unique(s$alpha), sigma_a = unique(s$sigma_a)))
 
 # number of points
+par(mfrow=c(1, 1))
 hist(sapply(sim_data, nrow), breaks = 100)
-# mean fixation duration
-hist(sapply(sim_data, function(x) mean(x$d)), breaks = 100)
+summary(sapply(sim_data, nrow))
+
+# central tendency of fixation duration
+hist(sapply(sim_data, function(x) mean  (x$d)), breaks = 100)
+hist(sapply(sim_data, function(x) median(x$d)), breaks = 100)
+
 # std.dev of fixation duration
 hist(sapply(sim_data, function(x) sd(x$d)), breaks = 100)
 
 stan_model <- rstan::stan_model(file = here::here("stan", "example_onlySaliency.stan"))
-fits <- lapply(sim_data[1:10], function(d){
+fits <- lapply(sim_data, function(d){
   dat <- list(N_rows = nrow(d), order = 1:nrow(d), x = d$x, y = d$y, duration = d$d,
               N_pixels = nrow(saldf), id_pixel = 1:nrow(saldf),
               x_pixel = saldf$x, y_pixel = saldf$y, log_val_pixel = saldf$log_s, log_area_pixel = 16, which_pixel = d$f)
@@ -73,3 +80,22 @@ fits <- lapply(sim_data[1:10], function(d){
   
   return(fit)
 })
+
+
+summaries <- my_sapply(fits, function(f){
+  alpha <- rstan::extract(f)$alpha
+  sigma_a <- rstan::extract(f)$sigma_a
+  
+  c(mean_alpha = mean(alpha), var_alpha = var(alpha), mean_sigma_a = mean(sigma_a), var_sigma_a = var(sigma_a))
+})
+
+bias_variance <- data.frame(z_alpha = (summaries$mean_alpha - sim_par$alpha) / sqrt(summaries$var_alpha),
+                            contraction_alpha = 1 - summaries$var_alpha / var(sim_par$alpha),
+                            z_sigma_a = (summaries$mean_sigma_a - sim_par$sigma_a) / sqrt(summaries$var_sigma_a),
+                            contraction_sigma_a = 1 - summaries$var_sigma_a / var(sim_par$sigma_a))
+plot(bias_variance$contraction_alpha, bias_variance$z_alpha, xlim = 0:1, bty = "l", ylim = c(-2, 2),
+     xlab = "Posterior contraction", ylab = "Posterior z-score (standardized bias)", pch = 20)
+abline(h = 0, lty = 2)
+plot(bias_variance$contraction_sigma_a, bias_variance$z_sigma_a, xlim = 0:1, bty = "l", ylim = c(-2, 2),
+     xlab = "Posterior contraction", ylab = "Posterior z-score (standardized bias)", pch = 20)
+abline(h = 0, lty = 2)

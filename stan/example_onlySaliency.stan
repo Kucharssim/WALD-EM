@@ -44,6 +44,6 @@ model{
   target += sum(log_lik_xy);
   target += sum(wald_log_lik);
   
-  alpha ~ normal(2, 2);
-  sigma_attention ~ gamma(2, 0.02);
+  alpha ~ normal(2, 1);
+  sigma_attention ~ gamma(5, 0.1);
 }
