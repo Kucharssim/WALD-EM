@@ -8,3 +8,4 @@
     
     return log_sum_exp(log_lik);
   }
+
