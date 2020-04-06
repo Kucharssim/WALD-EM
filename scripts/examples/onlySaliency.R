@@ -105,3 +105,5 @@ plot(bias_variance$contraction_sigma_a, bias_variance$z_sigma_a,
      xlab = "Posterior contraction", ylab = "Posterior z-score (standardized bias)", pch = 20, bty = "l")
 abline(h = 0, lty = 2)
 abline(h = mean(bias_variance$z_sigma_a), lty = 3)
+
+

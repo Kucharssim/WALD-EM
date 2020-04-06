@@ -1,0 +1,20 @@
+---
+title: "Examples"
+author: "Simon Kucharsky"
+date: "4/6/2020"
+output: rmarkdown::github_document
+bibliography: "`r here::here('bibliography.bib')`"
+csl: "`r here::here('apa.csl')`"
+---
+
+## Introduction
+
+This file serves as a supplementary to the article "Dynamic models of eye movements" and provides step by step explanation of the building and implementation of the modelling framework for model that describes the joint distribution of fixation locations and fixation durations.
+
+The models are implemented in Stan [@carpenter2017stan]
+
+```{r}
+writeLines(readLines(here::here("stan", "example_onlySaliency.stan")), )
+```
+
+## References
