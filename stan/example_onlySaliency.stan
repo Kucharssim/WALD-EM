@@ -35,7 +35,7 @@ transformed parameters{
   for(i in 1:N_rows){
     log_lik_xy[i] = log_val_pixel[which_pixel[i]] - log_area_pixel;
     
-    nu[i] = - log_sum_exp(log_val_pixel - sq_distances[i]/sigma_attention);
+    nu[i] = - log_sum_exp(log_val_pixel - sq_distances[i]/square(sigma_attention));
     
     wald_log_lik[i] = wald_lpdf(duration[i] | alpha, nu[i]);
   }
@@ -45,5 +45,5 @@ model{
   target += sum(wald_log_lik);
   
   alpha ~ normal(2, 1);
-  sigma_attention ~ gamma(5, 0.1);
+  sigma_attention ~ gamma(2, 0.1);
 }
