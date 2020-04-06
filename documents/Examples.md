@@ -1,7 +1,7 @@
 Examples
 ================
 Simon Kucharsky
-2020-04-06
+2020-04-07
 
 This file serves as a supplement to the article “Dynamic models of eye
 movements” and provides step by step explanation of the building and
@@ -51,9 +51,9 @@ file loads the following files:
 
     ## #include helpers/wald_lpdf.stan
     ## #include helpers/wald_rng.stan
-    ## #include helpers/log_integral_attention_1d.stan
-    ## #include helpers/log_integral_attention_mixture_1d.stan
     ## #include helpers/mixture_normals_lpdf.stan
+    ## #include helpers/log_integral_attention_1d.stan
+    ## #include helpers/log_integral_attention_mixture_2d.stan
 
 Here, we go through all of the files to document the functionality we
 added to Stan.
@@ -137,16 +137,19 @@ To obtain the log of this density, we constructed the following
 convenience function that implements this
     calculation
 
-    ##   real mixture_normals_lpdf(real y, vector weights, vector mu, vector sigma){
-    ##     int K = num_elements(mu);
+    ##   real mixture_normals(real x, real y, vector weights, vector mu_x, vector sigma_x, vector mu_y, vector sigma_y){
+    ##     int K = num_elements(weights);
     ##     vector[K] log_lik = log(weights);
     ##     
     ##     for(k in 1:K){
-    ##       log_lik[k] += normal_lpdf(y | mu[k], sigma[k]);
+    ##       log_lik[k] += normal_lpdf(x | mu_x[k], sigma_x[k])
+    ##       log_lik[k] += normal_lpdf(y | mu_y[k], sigma_y[k]);
     ##     }
     ##     
     ##     return log_sum_exp(log_lik);
     ##   }
+
+## Common functions to compute the drift rate ![\\nu](https://latex.codecogs.com/png.latex?%5Cnu "\\nu")
 
 The model we use relies on integration of the intensity function with
 the attention window. Recall that we define the intensity function as
@@ -161,6 +164,52 @@ a(x, y | s) = \\exp \\left(-\\frac{(x - s\_x)^2}{2\\sigma\_a^2}\\right)
 "
 a(x, y | s) = \\exp \\left(-\\frac{(x - s_x)^2}{2\\sigma_a^2}\\right) \\times \\exp \\left(-\\frac{(y - s_y)^2}{2\\sigma_a^2}\\right)
 ")  
+
+The following function in `log_integral_attention_1d.stan` implements
+the integral of an intensity function in one dimension multiplied by the
+attention window:
+
+  
+![
+\\log \\int \\frac{1}{\\sqrt{2\\pi}\\sigma}\\exp\\left(-\\frac{(x -
+\\mu\_x)^2}{2\\sigma\_x^2}\\right) \\exp\\left(-\\frac{(x -
+s\_x)^2}{2\\sigma\_a^2}\\right) dx
+](https://latex.codecogs.com/png.latex?%0A%5Clog%20%5Cint%20%5Cfrac%7B1%7D%7B%5Csqrt%7B2%5Cpi%7D%5Csigma%7D%5Cexp%5Cleft%28-%5Cfrac%7B%28x%20-%20%5Cmu_x%29%5E2%7D%7B2%5Csigma_x%5E2%7D%5Cright%29%20%5Cexp%5Cleft%28-%5Cfrac%7B%28x%20-%20s_x%29%5E2%7D%7B2%5Csigma_a%5E2%7D%5Cright%29%20dx%0A
+"
+\\log \\int \\frac{1}{\\sqrt{2\\pi}\\sigma}\\exp\\left(-\\frac{(x - \\mu_x)^2}{2\\sigma_x^2}\\right) \\exp\\left(-\\frac{(x - s_x)^2}{2\\sigma_a^2}\\right) dx
+")  
+
+    ##   real log_integral_attention_1d(real center_attention, real center_lambda, real width_attention, real width_lambda){
+    ##     real var_a  = square(width_attention);
+    ##     real var_l  = square(width_lambda);
+    ##     real var_al = var_a + var_l;
+    ##     real diff_m_sq = square(center_attention - center_lambda);
+    ##     
+    ##     return log(width_attention) - 0.5 * log(var_al) - 0.5 * diff_m_sq / var_al;
+    ##   }
+
+And the function in `log_integral_attention_mixture_2d.stan` implements
+the integration:
+
+  
+![
+\\int\\int \\lambda(x, y) \\times a(x, y | s) dx dy
+](https://latex.codecogs.com/png.latex?%0A%5Cint%5Cint%20%5Clambda%28x%2C%20y%29%20%5Ctimes%20a%28x%2C%20y%20%7C%20s%29%20dx%20dy%0A
+"
+\\int\\int \\lambda(x, y) \\times a(x, y | s) dx dy
+")  
+
+    ##   real log_integral_attention_mixture_2d(real x, real y, vector weights, vector mu_x, vector sigma_x, vector mu_y, vector sigma_y, real width_x, real width_y){
+    ##     int K = num_elements(weights);
+    ##     vector[K] log_int = log(weights);
+    ##     
+    ##     for(k in 1:K){
+    ##       log_int += log_integral_attention_1d(x, mu_x[k], width_x, sigma_x[k]);
+    ##       log_int += log_integral_attention_1d(y, mu_y[k], width_y, sigma_y[k]);
+    ##     }
+    ##     
+    ##     return log_sum_exp(log_int); 
+    ##   }
 
 ## References
 

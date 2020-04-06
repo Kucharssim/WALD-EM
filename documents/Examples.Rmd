@@ -76,6 +76,7 @@ To obtain the log of this density, we constructed the following convenience func
 writeLines(readLines(here::here("stan", "helpers", "mixture_normals_lpdf.stan")))
 ```
 
+## Common functions to compute the drift rate $\nu$
 
 The model we use relies on integration of the intensity function with the attention window. Recall that we define the intensity function as
 and that we defined the attention window as a kernel of a Gaussian distribution:
@@ -85,12 +86,23 @@ a(x, y | s) = \exp \left(-\frac{(x - s_x)^2}{2\sigma_a^2}\right) \times \exp \le
 $$
 
 
-```{r echo=FALSE}
+The following function in `log_integral_attention_1d.stan` implements the integral of an intensity function in one dimension multiplied by the attention window:
 
+$$
+\log \int \frac{1}{\sqrt{2\pi}\sigma}\exp\left(-\frac{(x - \mu_x)^2}{2\sigma_x^2}\right) \exp\left(-\frac{(x - s_x)^2}{2\sigma_a^2}\right) dx
+$$
+
+```{r echo=FALSE}
+writeLines(readLines(here::here("stan", "helpers", "log_integral_attention_1d.stan")))
 ```
 
-```{r echo=FALSE}
+And the function in `log_integral_attention_mixture_2d.stan` implements the integration:
 
+$$
+\int\int \lambda(x, y) \times a(x, y | s) dx dy
+$$
+```{r echo=FALSE}
+writeLines(readLines(here::here("stan", "helpers", "log_integral_attention_mixture_2d.stan")))
 ```
 
 

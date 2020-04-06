@@ -6,3 +6,4 @@
     
     return log(width_attention) - 0.5 * log(var_al) - 0.5 * diff_m_sq / var_al;
   }
+
