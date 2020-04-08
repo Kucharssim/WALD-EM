@@ -3,4 +3,5 @@
 .RData
 .Ruserdata
 .DS_Store
+data/object_familiarity
 get_saliency
