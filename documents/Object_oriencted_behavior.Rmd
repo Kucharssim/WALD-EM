@@ -1,0 +1,37 @@
+---
+title: "Object oriented behavior"
+author: "Simon Kucharsky"
+date: "`r Sys.Date()`"
+output: 
+  rmarkdown::github_document:
+    pandoc_args: --webtex
+bibliography: "`r here::here('bibliography.bib')`"
+csl: "`r here::here('apa.csl')`"
+---
+
+```{r include=FALSE}
+library(imager)
+library(plotrix)
+source(here::here("R", "load_image.R"))
+image_nr <- 1001
+image_name  <- paste0(image_nr, ".jpg")
+objects <- read.csv(here::here("data", "object_familiarity", "objects.csv"))
+objects <- subset(objects, image_name == image_nr)
+```
+This example demonstrates the implementation of a dynamic model of eye movements that assumes that only objects on the scene influence the eye movement behavior.
+
+
+We will demonstrate this example on one stimulus from the article by @Xu2014beyond. Specifically, the following image `r image_name` available from their [public repository](https://github.com/NUS-VIP/predicting-human-gaze-beyond-pixels):
+
+```{r echo=FALSE, fig.width=8, fig.height=6}
+img <- load_image(image_name)
+plot(img, axes = FALSE)
+points(objects$x, objects$y, pch = 10, cex = 2)
+for(i in 1:nrow(objects))
+  plotrix::draw.ellipse(x = objects$x[i], y = objects$y[i], a = objects$width[i]/2, b = objects$height[i]/2, angle = 0, lwd = 2)
+```
+
+
+
+
+## References
