@@ -3,7 +3,7 @@
     vector[K] log_lik = log(weights);
     
     for(k in 1:K){
-      log_lik[k] += normal_lpdf(x | mu_x[k], sigma_x[k])
+      log_lik[k] += normal_lpdf(x | mu_x[k], sigma_x[k]);
       log_lik[k] += normal_lpdf(y | mu_y[k], sigma_y[k]);
     }
     

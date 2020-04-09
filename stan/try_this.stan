@@ -1,5 +1,5 @@
 functions{
-#include helpers/load_functions.stan
+#include stan/helpers/load_functions.stan
 }
 data{
   int T;
@@ -11,3 +11,4 @@ parameters{
 model{
   y ~ normal(mu, 1);
 }
+

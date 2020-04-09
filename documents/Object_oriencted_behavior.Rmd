@@ -4,7 +4,7 @@ author: "Simon Kucharsky"
 date: "`r Sys.Date()`"
 output: 
   rmarkdown::github_document:
-    pandoc_args: --webtex
+    # pandoc_args: --webtex
 bibliography: "`r here::here('bibliography.bib')`"
 csl: "`r here::here('apa.csl')`"
 ---
@@ -21,7 +21,7 @@ objects <- subset(objects, image_name == image_nr)
 This example demonstrates the implementation of a dynamic model of eye movements that assumes that only objects on the scene influence the eye movement behavior.
 
 
-We will demonstrate this example on one stimulus from the article by @Xu2014beyond. Specifically, the following image `r image_name` available from their [public repository](https://github.com/NUS-VIP/predicting-human-gaze-beyond-pixels):
+We will demonstrate this example on one stimulus from the article by @Xu2014beyond. Specifically, we use the following image `r image_name` available from their [public repository](https://github.com/NUS-VIP/predicting-human-gaze-beyond-pixels):
 
 ```{r echo=FALSE, fig.width=8, fig.height=6}
 img <- load_image(image_name)
@@ -32,6 +32,49 @@ for(i in 1:nrow(objects))
 ```
 
 
+The ellipses with demarkate objects on the scene.
+
+## Model specification
+
+Recall that we have a model for the fixation locations, specified as follows:
+
+$$
+\lambda(x, y) = \sum_{k=1}^K \pi_k \times \text{Normal}(x | \mu_{kx}, \sigma_{kx}) \times \text{Normal}(y | \mu_{ky}, \sigma_{ky}).
+$$
+Here our 'factors' will be the objects on the scene. We know the locations of the objects, and so we set the means $\mu$ to the centers of the objects. However, the objects can have varying size. To account the sizes of the objects, we could technically estimate the individual $\sigma$'s, but we can also use the fact that we have a data set that demarkates the width ($w$) and height ($h$) of the objects, and use a single parameter $\delta$ that stretches all the dimensions of the objects equally. The model for fixation locations is then 
+
+$$
+\lambda(x, y) = \sum_{k=1}^K \pi_k \times \text{Normal}(x | m_{kx}, \delta w_{kx}/2) \times \text{Normal}(y | m_{ky}, \delta h_{ky}/2).
+$$
+Our model for fixation duration is
+
+$$
+d^t \sim \text{Wald}(\alpha, \nu^t) \\
+\nu^t = -\log \int \int a(x, y | s^t) \lambda(x, y) dx dy,
+$$
+where $s^t$ is the current fixation location.
+
+## Implementation in Stan
+
+The model can be translated in the Stan code as following
+
+```{r}
+writeLines(readLines(here::here("stan", "examples", "object_oriented_behavior.stan")))
+#model <- rstan::stan_model(here::here("stan", "examples", "object_oriented_behavior.stan"))
+```
+
+## Prior Predictives
+
+We created the model with the following priors:
+
+$$
+\begin{aligned}
+\pi & \sim \text{Symmetric-Dirichlet}(2) \\
+\delta & \sim \text{Exponential}(1) \\
+\alpha & \sim \text{Normal}(2, 1)_{[0,\infty)} \\
+\sigma_a & \sim \text{Gamma}(2, 0.1)
+\end{aligned}
+$$
 
 
 ## References
