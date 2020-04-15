@@ -10,6 +10,7 @@ csl: "`r here::here('apa.csl')`"
 ---
 
 ```{r include=FALSE}
+library(tidyverse)
 library(imager)
 library(plotrix)
 source(here::here("R", "load_image.R"))
@@ -64,7 +65,7 @@ The model can be translated in the Stan code as following
 
 ```{r}
 writeLines(readLines(here::here("stan", "examples", "object_oriented_behavior.stan")))
-#model <- rstan::stan_model(here::here("stan", "examples", "object_oriented_behavior.stan"))
+model <- rstan::stan_model(here::here("stan", "examples", "object_oriented_behavior.stan"), isystem = here::here())
 ```
 
 ## Prior Predictives
@@ -81,7 +82,7 @@ $$
 $$
 
 ```{r draw_parameters, echo=FALSE}
-n_sim <- 1000
+n_sim <- 200
 t_max <- 10
 n_objects <- nrow(objects)
 sim_parameters_list <- replicate(n = n_sim, expr = list(pi    = gtools::rdirichlet(1, rep(2, n_objects))[1,,drop=TRUE],
@@ -137,13 +138,13 @@ sim_data <- do.call(rbind, sim_data_list)
 
 Below is what the model in combination with the priors predicts about the locations of fixations:
 
-```{r pred_fixations}
+```{r pred_fixations, echo=FALSE}
 plot(sim_data$x, sim_data$y, pch = 19, cex = 0.1, xlab = "x", ylab = "y", bty = "n", ylim = rev(range(sim_data$y)))
 ```
 
 And below are the summaries of the distributions of fixation durations
 
-```{r pred_durations}
+```{r pred_durations, echo=FALSE}
 par(mfrow = c(1, 3))
 hist(sapply(sim_data_list, function(x) mean(x$duration)), breaks = n_sim / 50, main = "Mean fixation durations", xlab = "")
 hist(sapply(sim_data_list, function(x) sd(x$duration)),   breaks = n_sim / 50, main = "SD of fixation durations", xlab = "", ylab = "")
@@ -156,8 +157,19 @@ hist(sapply(sim_data_list, nrow), breaks = n_sim / 50, main = sprintf("Number of
 
 We fit the model on all `r n_sim` simulated datasets.
 
-```{r}
-fits <- lapply()
+```{r fit}
+chains <- 4
+cores <- 4
+
+pb <- dplyr::progress_estimated(length(sim_data_list), min_time = 1)
+fits <- lapply(sim_data_list, function(d){
+  pb$tick()$print()
+  stan_data <- list(N_obs = nrow(d), x = d$x, y = d$y, duration = d$duration, 
+                    N_objects = n_objects, objects_center_x = objects$x, objects_center_y = objects$y,
+                    objects_width = objects$width, objects_height = objects$height)
+  
+  fit <- rstan::sampling(model, stan_data, chains  = chains, cores = cores, iter = 2000, warmup = 1000, refresh = 0)
+})
 ```
 
 
