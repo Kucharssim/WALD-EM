@@ -40,6 +40,7 @@ model{
   // priors
   alpha ~ normal(2, 1);
   sigma_attention ~ gamma(2, 0.1);
-  delta ~ exp(1);
-  weigths ~ dirichlet(rep_vector(2, N_objects));
+  delta ~ exponential(1);
+  weights ~ dirichlet(rep_vector(2, N_objects));
 }
+
