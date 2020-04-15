@@ -1,7 +1,7 @@
 Object oriented behavior
 ================
 Simon Kucharsky
-2020-04-09
+2020-04-15
 
 This example demonstrates the implementation of a dynamic model of eye
 movements that assumes that only objects on the scene influence the eye
@@ -14,7 +14,8 @@ repository](https://github.com/NUS-VIP/predicting-human-gaze-beyond-pixels):
 
 ![](Object_oriencted_behavior_files/figure-gfm/unnamed-chunk-2-1.png)<!-- -->
 
-The ellipses with demarkate objects on the scene.
+The ellipses demarkate objects on the scene (based on their specified
+widths and heights).
 
 ## Model specification
 
@@ -112,6 +113,8 @@ We created the model with the following priors:
 \sigma_a & \sim \text{Gamma}(2, 0.1)
 \end{aligned}
 \]
+
+![](Object_oriencted_behavior_files/figure-gfm/draw_data-1.png)<!-- -->
 
 ## References
 
