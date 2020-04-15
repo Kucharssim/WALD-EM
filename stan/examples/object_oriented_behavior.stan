@@ -1,9 +1,5 @@
 functions{
-#include stan/helpers/wald_lpdf.stan
-#include stan/helpers/wald_rng.stan
-#include stan/helpers/mixture_normals_lpdf.stan
-#include stan/helpers/log_integral_attention_1d.stan
-#include stan/helpers/log_integral_attention_mixture_2d.stan
+#include stan/helpers/load_functions.stan
 }
 data{
   int<lower=1> N_obs; // number of observations
@@ -14,11 +10,11 @@ data{
   int<lower=1> N_objects; // number of objects on a scene
   vector[N_objects] objects_center_x; // x-coordinates of object centers
   vector[N_objects] objects_center_y; // y-coordinates of object centers
-  vector[N_objects] objects_widht; // object widths
+  vector[N_objects] objects_width; // object widths
   vector[N_objects] objects_height; // object heights
 }
 transformed data{
-  vector[N_objects] objects_widht_2 = objects_widht / 2; // object radii in x-coordinate
+  vector[N_objects] objects_width_2 = objects_width / 2; // object radii in x-coordinate
   vector[N_objects] objects_height_2 = objects_height / 2; // object radii in y-coordinate
 }
 parameters{
@@ -28,7 +24,7 @@ parameters{
   real<lower=0> sigma_attention; // width of attention window
 }
 transformed parameters{
-  vector[N_objects] sigma_x = delta * objects_widht_2;
+  vector[N_objects] sigma_x = delta * objects_width_2;
   vector[N_objects] sigma_y = delta * objects_height_2;
 }
 model{
@@ -41,10 +37,9 @@ model{
     duration[t] ~ wald(alpha, nu);
   }
   
-  # priors
+  // priors
   alpha ~ normal(2, 1);
   sigma_attention ~ gamma(2, 0.1);
   delta ~ exp(1);
   weigths ~ dirichlet(rep_vector(2, N_objects));
 }
-

@@ -156,4 +156,9 @@ hist(sapply(sim_data_list, nrow), breaks = n_sim / 50, main = sprintf("Number of
 
 We fit the model on all `r n_sim` simulated datasets.
 
+```{r}
+fits <- lapply()
+```
+
+
 ## References
