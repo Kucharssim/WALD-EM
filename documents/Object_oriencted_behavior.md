@@ -114,7 +114,36 @@ We created the model with the following priors:
 \end{aligned}
 \]
 
-![](Object_oriencted_behavior_files/figure-gfm/draw_data-1.png)<!-- -->
+We simulate 1000 data sets:
+
+1)  draw parameters based on their priors
+2)  draw 10 seconds of data or at most 100 fixations for a given set of
+    drawn parameters
+
+Below is what the model in combination with the priors predicts about
+the locations of
+fixations:
+
+``` r
+plot(sim_data$x, sim_data$y, pch = 19, cex = 0.1, xlab = "x", ylab = "y", bty = "n", ylim = rev(range(sim_data$y)))
+```
+
+![](Object_oriencted_behavior_files/figure-gfm/pred_fixations-1.png)<!-- -->
+
+And below are the summaries of the distributions of fixation durations
+
+``` r
+par(mfrow = c(1, 3))
+hist(sapply(sim_data_list, function(x) mean(x$duration)), breaks = n_sim / 50, main = "Mean fixation durations", xlab = "")
+hist(sapply(sim_data_list, function(x) sd(x$duration)),   breaks = n_sim / 50, main = "SD of fixation durations", xlab = "", ylab = "")
+hist(sapply(sim_data_list, nrow), breaks = n_sim / 50, main = sprintf("Number of fixations in %s sec", t_max), xlab = "", ylab = "")
+```
+
+![](Object_oriencted_behavior_files/figure-gfm/pred_durations-1.png)<!-- -->
+
+## Computational faithfulness
+
+We fit the model on all 1000 simulated datasets.
 
 ## References
 

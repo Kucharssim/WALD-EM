@@ -3,8 +3,8 @@
     vector[K] log_int = log(weights);
     
     for(k in 1:K){
-      log_int += log_integral_attention_1d(x, mu_x[k], width_x, sigma_x[k]);
-      log_int += log_integral_attention_1d(y, mu_y[k], width_y, sigma_y[k]);
+      log_int[k] += log_integral_attention_1d(x, mu_x[k], width_x, sigma_x[k]);
+      log_int[k] += log_integral_attention_1d(y, mu_y[k], width_y, sigma_y[k]);
     }
     
     return log_sum_exp(log_int); 

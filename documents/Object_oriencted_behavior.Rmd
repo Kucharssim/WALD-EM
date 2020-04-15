@@ -82,6 +82,7 @@ $$
 
 ```{r draw_parameters, echo=FALSE}
 n_sim <- 1000
+t_max <- 10
 n_objects <- nrow(objects)
 sim_parameters_list <- replicate(n = n_sim, expr = list(pi    = gtools::rdirichlet(1, rep(2, n_objects))[1,,drop=TRUE],
                                                         delta = rexp(1, 1),
@@ -90,6 +91,13 @@ sim_parameters_list <- replicate(n = n_sim, expr = list(pi    = gtools::rdirichl
                                                         ),
                                  simplify = FALSE)
 ```
+
+
+We simulate `r n_sim` data sets:
+
+1) draw parameters based on their priors
+2) draw 10 seconds of data or at most 100 fixations for a given set of drawn parameters
+
 
 ```{r draw_data, echo=FALSE}
 simulate <- function(t_max, pi, delta, alpha, sigma_attention, n_max = t_max * 10){
@@ -119,14 +127,33 @@ simulate <- function(t_max, pi, delta, alpha, sigma_attention, n_max = t_max * 1
 
 sim_data_list <- lapply(seq_along(sim_parameters_list), function(i) {
   pars <- sim_parameters_list[[i]]
-  d <- simulate(t_max = 10, pi = pars$pi, delta = pars$delta, alpha = pars$alpha, sigma_attention = pars$sigma_attention, n_max = 100)
+  d <- simulate(t_max = t_max, pi = pars$pi, delta = pars$delta, alpha = pars$alpha, sigma_attention = pars$sigma_attention, n_max = 100)
   d$sim <- i
   return(d)
   })
 
 sim_data <- do.call(rbind, sim_data_list)
-
-plot(sim_data$x, sim_data$y, pch = 19, cex = 0.1)
 ```
+
+Below is what the model in combination with the priors predicts about the locations of fixations:
+
+```{r pred_fixations}
+plot(sim_data$x, sim_data$y, pch = 19, cex = 0.1, xlab = "x", ylab = "y", bty = "n", ylim = rev(range(sim_data$y)))
+```
+
+And below are the summaries of the distributions of fixation durations
+
+```{r pred_durations}
+par(mfrow = c(1, 3))
+hist(sapply(sim_data_list, function(x) mean(x$duration)), breaks = n_sim / 50, main = "Mean fixation durations", xlab = "")
+hist(sapply(sim_data_list, function(x) sd(x$duration)),   breaks = n_sim / 50, main = "SD of fixation durations", xlab = "", ylab = "")
+hist(sapply(sim_data_list, nrow), breaks = n_sim / 50, main = sprintf("Number of fixations in %s sec", t_max), xlab = "", ylab = "")
+```
+
+
+
+## Computational faithfulness
+
+We fit the model on all `r n_sim` simulated datasets.
 
 ## References
