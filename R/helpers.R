@@ -54,3 +54,19 @@ my_sapply <- function(X, FUN, ...){
   
   return(ll)
 }
+
+
+fits2rank <- function(fits, sim_par, name_par){
+  if(length(fits) != length(sim_par)) stop("fits and sim_par need the same length")
+  
+  ranks <- sapply(seq_along(fits), function(i){
+    par_prior <- sim_par[i]
+    par_post  <- rstan::extract(fits[[i]])[[name_par]]
+    
+    rank <- sum(par_prior <= par_post)
+    
+    rank
+  })
+  
+  return(ranks)
+}

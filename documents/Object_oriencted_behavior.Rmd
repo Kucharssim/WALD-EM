@@ -13,6 +13,7 @@ csl: "`r here::here('apa.csl')`"
 library(tidyverse)
 library(imager)
 library(plotrix)
+library(gtools)
 source(here::here("R", "load_image.R"))
 source(here::here("R", "helpers.R"))
 source(here::here("R", "expose_helpers_stan.R"))
@@ -64,8 +65,8 @@ where $s^t$ is the current fixation location.
 The model can be translated in the Stan code as following
 
 ```{r}
-writeLines(readLines(here::here("stan", "examples", "object_oriented_behavior.stan")))
 model <- rstan::stan_model(here::here("stan", "examples", "object_oriented_behavior.stan"), isystem = here::here())
+writeLines(readLines(here::here("stan", "examples", "object_oriented_behavior.stan")))
 ```
 
 ## Prior Predictives
@@ -82,7 +83,7 @@ $$
 $$
 
 ```{r draw_parameters, echo=FALSE}
-n_sim <- 200
+n_sim <- 1000
 t_max <- 10
 n_objects <- nrow(objects)
 sim_parameters_list <- replicate(n = n_sim, expr = list(pi    = gtools::rdirichlet(1, rep(2, n_objects))[1,,drop=TRUE],
@@ -91,6 +92,8 @@ sim_parameters_list <- replicate(n = n_sim, expr = list(pi    = gtools::rdirichl
                                                         sigma_attention = rgamma(1, shape = 2, rate = 0.1)
                                                         ),
                                  simplify = FALSE)
+sim_parameters <- lapply(sim_parameters_list, unlist)
+sim_parameters <- as.data.frame(do.call(rbind, sim_parameters))
 ```
 
 
@@ -109,8 +112,8 @@ simulate <- function(t_max, pi, delta, alpha, sigma_attention, n_max = t_max * 1
   
   while(t <= t_max && length(x) < n_max){
     which_factor <- sample(1:n_objects, 1, FALSE, pi)
-    x_now <- rtnorm(1, objects$x[which_factor], sigma_x[which_factor], dim_img$min_x, dim_img$max_x)
-    y_now <- rtnorm(1, objects$y[which_factor], sigma_y[which_factor], dim_img$min_y, dim_img$max_y)
+    x_now <- rnorm(1, objects$x[which_factor], sigma_x[which_factor])#, dim_img$min_x, dim_img$max_x)
+    y_now <- rnorm(1, objects$y[which_factor], sigma_y[which_factor])#, dim_img$min_y, dim_img$max_y)
     nu_now <- -log_integral_attention_mixture_2d(x = x_now, y = y_now, weights = pi, 
                                                  mu_x = objects$x, sigma_x = sigma_x, 
                                                  mu_y = objects$y, sigma_y = sigma_y, 
@@ -153,23 +156,35 @@ hist(sapply(sim_data_list, nrow), breaks = n_sim / 50, main = sprintf("Number of
 
 
 
-## Computational faithfulness
+## Simulation based calibration
 
 We fit the model on all `r n_sim` simulated datasets.
 
-```{r fit}
-chains <- 4
-cores <- 4
-
+```{r fit, echo=FALSE, message=FALSE, warning=FALSE}
 pb <- dplyr::progress_estimated(length(sim_data_list), min_time = 1)
-fits <- lapply(sim_data_list, function(d){
+fits <- plyr::dlply(.data = sim_data, .variables = "sim", .fun = function(d){
   pb$tick()$print()
   stan_data <- list(N_obs = nrow(d), x = d$x, y = d$y, duration = d$duration, 
                     N_objects = n_objects, objects_center_x = objects$x, objects_center_y = objects$y,
                     objects_width = objects$width, objects_height = objects$height)
-  
-  fit <- rstan::sampling(model, stan_data, chains  = chains, cores = cores, iter = 2000, warmup = 1000, refresh = 0)
-})
+  suppressWarnings(
+    fit <- rstan::sampling(model, stan_data, chains  = 1, cores = 1, iter = 520, warmup = 500, refresh = 0, thin = 2)
+  )
+  return(fit)
+}, .parallel = TRUE)
+# fits <- lapply(sim_data_list, function(d){
+#   pb$tick()$print()
+#   stan_data <- list(N_obs = nrow(d), x = d$x, y = d$y, duration = d$duration, 
+#                     N_objects = n_objects, objects_center_x = objects$x, objects_center_y = objects$y,
+#                     objects_width = objects$width, objects_height = objects$height)
+#   
+#   fit <- rstan::sampling(model, stan_data, chains  = chains, cores = cores, iter = 510, warmup = 500, refresh = 0)
+#   return(fit)
+# })
+```
+
+```{r sbc}
+sbc <- lapply(c("alpha", "delta", "sigma_attention"), function(p) fits2rank(fits, sim_parameters[[p]], p))
 ```
 
 
