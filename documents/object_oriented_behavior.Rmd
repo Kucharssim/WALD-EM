@@ -9,11 +9,32 @@ bibliography: "`r here::here('bibliography.bib')`"
 csl: "`r here::here('apa.csl')`"
 ---
 
-```{r include=FALSE}
+```{r}
+library(Rcpp)
+Rcpp::sourceCpp(code = 
+'
+#include <Rcpp.h>
+
+// [[Rcpp::export]]
+int throw_exception() { 
+  std::stringstream errmsg; errmsg << "this is the expected behavior";
+  throw std::domain_error(errmsg.str()); 
+  return 0;
+}
+'
+)
+
+throw_exception()
+```
+
+
+```{r init, include=FALSE}
 library(tidyverse)
 library(imager)
 library(plotrix)
 library(gtools)
+library(rstan)
+# rstan::rstan_options(auto_write=TRUE)
 source(here::here("R", "load_image.R"))
 source(here::here("R", "helpers.R"))
 source(here::here("R", "expose_helpers_stan.R"))
@@ -28,7 +49,7 @@ This example demonstrates the implementation of a dynamic model of eye movements
 
 We will demonstrate this example on one stimulus from the article by @Xu2014beyond. Specifically, we use the following image `r image_name` available from their [public repository](https://github.com/NUS-VIP/predicting-human-gaze-beyond-pixels):
 
-```{r echo=FALSE, fig.width=8, fig.height=6}
+```{r img, echo=FALSE, fig.width=8, fig.height=6}
 img <- load_image(image_name)
 dim_img <- list(min_x = 0, min_y = 0, max_x = imager::width(img), max_y = imager::height(img))
 plot(img, axes = FALSE)
@@ -64,7 +85,7 @@ where $s^t$ is the current fixation location.
 
 The model can be translated in the Stan code as following
 
-```{r}
+```{r model, echo=FALSE}
 model <- rstan::stan_model(here::here("stan", "examples", "object_oriented_behavior.stan"), isystem = here::here())
 writeLines(readLines(here::here("stan", "examples", "object_oriented_behavior.stan")))
 ```
@@ -82,7 +103,7 @@ $$
 \end{aligned}
 $$
 
-```{r draw_parameters, echo=FALSE}
+```{r prior_predictives, echo=FALSE, cache=FALSE}
 n_sim <- 1000
 t_max <- 10
 n_objects <- nrow(objects)
@@ -94,16 +115,7 @@ sim_parameters_list <- replicate(n = n_sim, expr = list(pi    = gtools::rdirichl
                                  simplify = FALSE)
 sim_parameters <- lapply(sim_parameters_list, unlist)
 sim_parameters <- as.data.frame(do.call(rbind, sim_parameters))
-```
 
-
-We simulate `r n_sim` data sets:
-
-1) draw parameters based on their priors
-2) draw 10 seconds of data or at most 100 fixations for a given set of drawn parameters
-
-
-```{r draw_data, echo=FALSE}
 simulate <- function(t_max, pi, delta, alpha, sigma_attention, n_max = t_max * 10){
   x <- y <- duration <- nu <- numeric()
   t <- 0
@@ -112,8 +124,8 @@ simulate <- function(t_max, pi, delta, alpha, sigma_attention, n_max = t_max * 1
   
   while(t <= t_max && length(x) < n_max){
     which_factor <- sample(1:n_objects, 1, FALSE, pi)
-    x_now <- rnorm(1, objects$x[which_factor], sigma_x[which_factor])#, dim_img$min_x, dim_img$max_x)
-    y_now <- rnorm(1, objects$y[which_factor], sigma_y[which_factor])#, dim_img$min_y, dim_img$max_y)
+    x_now <- rtnorm(1, objects$x[which_factor], sigma_x[which_factor], dim_img$min_x, dim_img$max_x)
+    y_now <- rtnorm(1, objects$y[which_factor], sigma_y[which_factor], dim_img$min_y, dim_img$max_y)
     nu_now <- -log_integral_attention_mixture_2d(x = x_now, y = y_now, weights = pi, 
                                                  mu_x = objects$x, sigma_x = sigma_x, 
                                                  mu_y = objects$y, sigma_y = sigma_y, 
@@ -139,6 +151,12 @@ sim_data_list <- lapply(seq_along(sim_parameters_list), function(i) {
 sim_data <- do.call(rbind, sim_data_list)
 ```
 
+We simulate `r n_sim` data sets:
+
+1) draw parameters based on their priors
+2) draw 10 seconds of data or at most 100 fixations for a given set of drawn parameters
+
+
 Below is what the model in combination with the priors predicts about the locations of fixations:
 
 ```{r pred_fixations, echo=FALSE}
@@ -158,10 +176,11 @@ hist(sapply(sim_data_list, nrow), breaks = n_sim / 50, main = sprintf("Number of
 
 ## Simulation based calibration
 
-We fit the model on all `r n_sim` simulated datasets.
+We fit the model on all `r n_sim` simulated datasets and computed the rank based statistics from 10 MCMC samples (after thinning by a factor 2).
 
-```{r fit, echo=FALSE, message=FALSE, warning=FALSE}
+```{r sbc_fit, eval=FALSE, message=FALSE, warning=FALSE, cache=FALSE, include=FALSE}
 pb <- dplyr::progress_estimated(length(sim_data_list), min_time = 1)
+#pb <- dplyr::progress_estimated(10, min_time = 1)
 fits <- plyr::dlply(.data = sim_data, .variables = "sim", .fun = function(d){
   pb$tick()$print()
   stan_data <- list(N_obs = nrow(d), x = d$x, y = d$y, duration = d$duration, 
@@ -172,19 +191,44 @@ fits <- plyr::dlply(.data = sim_data, .variables = "sim", .fun = function(d){
   )
   return(fit)
 }, .parallel = TRUE)
-# fits <- lapply(sim_data_list, function(d){
+```
+
+
+```{r sbc_result, eval=FALSE, echo=FALSE, cache=FALSE}
+pars <- c("alpha", "delta", "sigma_attention")
+sbc <- lapply(pars, function(p) fits2rank(fits, sim_parameters[[p]], p))
+
+par(mfrow = c(length(pars), 2))
+for(p in seq_along(pars)){
+  post_par <- sapply(fits, function(f) rstan::extract(f)[[pars[p]]])
+  barplot(table(sbc[[p]]), main = pars[p], xlab = "Rank")
+  hist(sim_parameters[[pars[p]]], freq=FALSE, col = "red", main = pars[p], xlab = "")
+  hist(post_par, add = TRUE, freq = FALSE, col = rgb(0, 1, 0, 0.5))
+}
+```
+
+Above are the rank statistics based on 10 draws from the posterior for parameters `r pars`. The barplots seem relatively uniformly distributed, which does not suggest strong bias and/or issue with too certain/uncertain estimates. The histograms of the priors (red) and data averaged posteriors (green) also overlap sugesting that the correct posteriors are estimated.
+
+## Posterior contraction
+
+```{r fit, eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+# pb <- dplyr::progress_estimated(length(sim_data_list), min_time = 1)
+# fits <- plyr::dlply(.data = sim_data, .variables = "sim", .fun = function(d){
 #   pb$tick()$print()
 #   stan_data <- list(N_obs = nrow(d), x = d$x, y = d$y, duration = d$duration, 
 #                     N_objects = n_objects, objects_center_x = objects$x, objects_center_y = objects$y,
 #                     objects_width = objects$width, objects_height = objects$height)
-#   
-#   fit <- rstan::sampling(model, stan_data, chains  = chains, cores = cores, iter = 510, warmup = 500, refresh = 0)
+#   suppressWarnings(
+#     fit <- rstan::sampling(model, stan_data, chains  = 2, cores = 2, iter = 1000, warmup = 500, refresh = 0, thin = 1)
+#   )
 #   return(fit)
-# })
+# }, .parallel = TRUE)
+# 
+# save(fits, file = here::here("documents", "object_oriented_behavior", "contraction.Rdata"))
 ```
 
-```{r sbc}
-sbc <- lapply(c("alpha", "delta", "sigma_attention"), function(p) fits2rank(fits, sim_parameters[[p]], p))
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+# load(here::here("documents", "object_oriented_behavior", "contraction.Rdata"))
 ```
 
 

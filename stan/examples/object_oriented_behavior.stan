@@ -32,7 +32,7 @@ model{
     // compute drift rate at the specific location
     real nu = -log_integral_attention_mixture_2d(x[t], y[t], weights, objects_center_x, sigma_x, objects_center_y, sigma_y, sigma_attention, sigma_attention);
     // model for fixation locations
-    target += mixture_normals(x[t], y[t], weights, objects_center_x, sigma_x, objects_center_y, sigma_y);
+    target += mixture_trunc_normals(x[t], y[t], weights, objects_center_x, sigma_x, objects_center_y, sigma_y, 800.0, 600.0);
     // model for fixation durations
     duration[t] ~ wald(alpha, nu);
   }
