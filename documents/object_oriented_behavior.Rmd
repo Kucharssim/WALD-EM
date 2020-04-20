@@ -9,7 +9,10 @@ bibliography: "`r here::here('bibliography.bib')`"
 csl: "`r here::here('apa.csl')`"
 ---
 
-```{r}
+
+
+
+```{r, eval=TRUE}
 library(Rcpp)
 Rcpp::sourceCpp(code = 
 '
@@ -178,7 +181,7 @@ hist(sapply(sim_data_list, nrow), breaks = n_sim / 50, main = sprintf("Number of
 
 We fit the model on all `r n_sim` simulated datasets and computed the rank based statistics from 10 MCMC samples (after thinning by a factor 2).
 
-```{r sbc_fit, eval=FALSE, message=FALSE, warning=FALSE, cache=FALSE, include=FALSE}
+```{r sbc_fit, eval=TRUE, message=FALSE, warning=FALSE, cache=TRUE, include=FALSE}
 pb <- dplyr::progress_estimated(length(sim_data_list), min_time = 1)
 #pb <- dplyr::progress_estimated(10, min_time = 1)
 fits <- plyr::dlply(.data = sim_data, .variables = "sim", .fun = function(d){
