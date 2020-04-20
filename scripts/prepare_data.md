@@ -127,7 +127,8 @@ barplot(trains %>% subset(train) %>% .$id_ppt %>% table(), main = "Trials in tra
 <img src="prepare_data_files/figure-gfm/n_per_ppt-1.png" width="100%" style="display: block; margin: auto;" />
 
 ``` r
-readr::write_csv(df %>% subset(train), path = here::here("data", "fixations_train.csv"))
+readr::write_csv(df,                    path = here::here("data", "fixations.csv"))
+readr::write_csv(df %>% subset(train),  path = here::here("data", "fixations_train.csv"))
 readr::write_csv(df %>% subset(!train), path = here::here("data", "fixations_validate.csv"))
 ```
 
@@ -140,6 +141,25 @@ at [`get_saliency.py`](/data/saliency/get_saliency.py) and requires
 cloning the Itti and Koch saliency repository from
 <https://github.com/tamanobi/saliency-map>, originally created by Mayo
 Yamasaki.
+
+``` r
+library(imager)
+library(OpenImageR)
+source(here::here("R", "load_image.R"))
+
+img <- as.character(unique(df$image))
+img_names <- paste0(img, ".jpg")
+
+saliency <- lapply(img_names, load_image, folder = here::here("data", "saliency"))
+saliency_downsampled <- lapply(saliency, function(s) imager::as.cimg(OpenImageR::down_sample_image(as.matrix(s), 25, TRUE, 10, 50)))
+names(saliency) <- names(saliency_downsampled) <- img
+
+for(i in img){
+  imager::save.image(im = saliency_downsampled[[i]],
+                     file = here::here("data", "saliency", sprintf("%s_downsampled.jpg", i)),
+                     quality = 1)
+}
+```
 
 ## References
 

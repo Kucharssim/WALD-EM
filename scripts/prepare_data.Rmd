@@ -119,7 +119,8 @@ barplot(trains %>% subset(train) %>% .$id_ppt %>% table(), main = "Trials in tra
 ```
 
 ```{r save}
-readr::write_csv(df %>% subset(train), path = here::here("data", "fixations_train.csv"))
+readr::write_csv(df,                    path = here::here("data", "fixations.csv"))
+readr::write_csv(df %>% subset(train),  path = here::here("data", "fixations_train.csv"))
 readr::write_csv(df %>% subset(!train), path = here::here("data", "fixations_validate.csv"))
 ```
 
@@ -127,6 +128,25 @@ readr::write_csv(df %>% subset(!train), path = here::here("data", "fixations_val
 ## Saliency data
 
 We already preprocessed the stimuli images using the Itti and Koch algorithm. The processed images are in [`/data/saliency/`](/data/saliency/). `Python 3.7` script is available at [`get_saliency.py`](/data/saliency/get_saliency.py) and requires cloning the Itti and Koch saliency repository from [https://github.com/tamanobi/saliency-map](https://github.com/tamanobi/saliency-map), originally created by Mayo Yamasaki.
+
+```{r downsample_saliency}
+library(imager)
+library(OpenImageR)
+source(here::here("R", "load_image.R"))
+
+img <- as.character(unique(df$image))
+img_names <- paste0(img, ".jpg")
+
+saliency <- lapply(img_names, load_image, folder = here::here("data", "saliency"))
+saliency_downsampled <- lapply(saliency, function(s) imager::as.cimg(OpenImageR::down_sample_image(as.matrix(s), 25, TRUE, 10, 50)))
+names(saliency) <- names(saliency_downsampled) <- img
+
+for(i in img){
+  imager::save.image(im = saliency_downsampled[[i]],
+                     file = here::here("data", "saliency", sprintf("%s_downsampled.jpg", i)),
+                     quality = 1)
+}
+```
 
 
 ## References
