@@ -143,12 +143,6 @@ barplot(trains %>% subset(train) %>% .$id_ppt %>% table(), main = "Trials in tra
 
 <img src="prepare_data_files/figure-gfm/n_per_ppt-1.png" width="100%" style="display: block; margin: auto;" />
 
-``` r
-readr::write_csv(df,                    path = here::here("data", "fixations.csv"))
-readr::write_csv(df %>% subset(train),  path = here::here("data", "fixations_train.csv"))
-readr::write_csv(df %>% subset(!train), path = here::here("data", "fixations_validate.csv"))
-```
-
 ## Saliency data
 
 We already preprocessed the stimuli images using the Itti and Koch
@@ -159,12 +153,12 @@ cloning the Itti and Koch saliency repository from
 <https://github.com/tamanobi/saliency-map>, originally created by Mayo
 Yamasaki.
 
-We downsample the image saliency by a factor of 20 in each dimension.
-First, we apply the gaussian blur with sd = 10 and range of 20, then
-take every 20<sup>th</sup> row and column. That means that a picture of
+We downsample the image saliency by a factor of 40 in each dimension.
+First, we apply the gaussian blur with sd = 20 and range of 40, then
+take every 40<sup>th</sup> row and column. That means that a picture of
 dimensions 800 by 600 pixels will have a downsampled saliency map of
-size 40 by 30 aggregated pixels. Each of the aggregated pixels then
-subtends an area of 1200 original pixels.
+size 20 by 15 aggregated pixels. Each of the aggregated pixels then
+subtends an area of 300 original pixels.
 
 ``` r
 library(imager)
@@ -222,6 +216,86 @@ for(i in img){
 saliency_normalized <- dplyr::bind_rows(saliency_normalized)
 
 readr::write_csv(saliency_normalized, path = here::here("data", "saliency.csv"))
+```
+
+## Combination of saliency and eye movement data
+
+For models that contain saliency as one part of the explanatory
+variables, we can copy the value of the log-likelihood of the saliency
+into the fixation data sets for the model of where. For the model of
+when, we consider only aggregated pixels in a certain distance from the
+current location. The distance (82.3422716 pixels) is calculated by
+converting width of foveal attention (5 degrees of visual angle), given
+the distance from the screen (60 cm), width of the monitor (51 cm), and
+number of pixels in the horizontal direction (800).
+
+``` r
+df$log_lik_saliency <- numeric(length = nrow(df))
+saliency_log_list <- list()
+
+pb <- dplyr::progress_estimated(nrow(df))
+for(i in seq_len(nrow(df))){
+  pb$tick()$print()
+  x <- df$x[i]
+  y <- df$y[i]
+  current_img <- df$id_img[[i]]
+  s <- subset(saliency_normalized, id_img == current_img) # get saliency of the correct image
+  
+  distances <- sqrt((x-s$x)^2 + (y-s$y)^2)
+  mean_sq_distances <- distances^2 / 2
+  
+  which_closest <- which.min(distances) # get index of the aggregated pixel the fixation location is inside of
+  df$log_lik_saliency[i] <- s$log_lik_saliency[which_closest] # copy the corresponding log normalized saliency into the dataset
+  df$n_neighbors[i] <- sum(distances < radius)
+  saliency_log_list[[i]] <- data.frame(
+    distances          = distances[distances < radius],
+    mean_sq_distances  = mean_sq_distances[distances < radius],
+    saliency_log       = s$saliency_log[distances < radius]
+    )
+}
+```
+
+``` r
+#prepare elements of saliency_log as structures passable to Stan
+max_neighbors     <- max(df$n_neighbors)
+mean_sq_distances <- matrix(999, ncol = max_neighbors, nrow = nrow(df))
+saliency_log      <- matrix(999, ncol = max_neighbors, nrow = nrow(df))
+for(i in seq_len(nrow(df))){
+  mean_sq_distances[i, 1:df$n_neighbors[i]] <- saliency_log_list[[i]]$mean_sq_distances
+  saliency_log     [i, 1:df$n_neighbors[i]] <- saliency_log_list[[i]]$saliency_log
+}
+```
+
+## Prepare objects data
+
+We also extracted the information about the objects on the scenes.
+
+``` r
+obj <- read.csv(here::here("data", "object_familiarity", "cen700.txt"), sep = "", dec = ".")
+obj$image <- as.character(1000 + 1)
+
+objects <- dplyr::tibble(id_img = image_key$id_img[sapply(obj$image, function(i) which(i == image_key$image))],
+                         image  = obj$image,
+                         x      = obj$x, 
+                         y      = obj$y,
+                         width  = obj$max_x - obj$min_x,
+                         height = obj$max_y - obj$min_y,
+                         min_x  = obj$min_x,
+                         min_y  = obj$min_y,
+                         max_x  = obj$max_x,
+                         max_y  = obj$max_y)
+```
+
+``` r
+readr::write_csv(df,                    path = here::here("data", "fixations.csv"))
+readr::write_csv(df %>% subset(train),  path = here::here("data", "fixations_train.csv"))
+readr::write_csv(df %>% subset(!train), path = here::here("data", "fixations_validate.csv"))
+readr::write_csv(as.data.frame(mean_sq_distances), path = here::here("data", "mean_sq_distances.csv"))
+readr::write_csv(as.data.frame(saliency_log),      path = here::here("data", "saliency_log.csv"))
+readr::write_csv(objects,               path = here::here("data", "objects.csv"))
+
+save(df, mean_sq_distances, saliency_log, saliency_normalized, image_key, objects, 
+     file = here::here("data", "cleaned_data.Rdata"))
 ```
 
 ## References

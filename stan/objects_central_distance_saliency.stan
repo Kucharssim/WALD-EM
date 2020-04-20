@@ -21,9 +21,10 @@ data{
   int obj_index_to[N_img]; // the number that ends the indexes of objects that belong to an image
   int N_obj_in_img[N_img]; // the number of objects in each stimulus
   real log_lik_saliency[N_obs]; // the log likelihood of (x,y) given the saliency
-  int N_neighbors; // the number of closest pixels that we take into account when calculating the drift rate
-  vector[N_neighbors] distances; // distances of the neighbors to the fixation locations
-  vector[N_neighbors] saliency_log[N_obs]; // log of saliences of the neighbors
+  int max_neighbors;
+  int<lower=1,upper=max_neighbors> N_neighbors[N_obs]; // the number of closest pixels that we take into account when calculating the drift rate
+  vector[max_neighbors] mean_sq_distances[N_obs];      // distances of the neighbors to the fixation locations
+  vector[max_neighbors] saliency_log[N_obs];           // log of saliences of the neighbors
 }
 parameters{
   real<lower=0> sigma_center; // width of the central bias
@@ -51,6 +52,7 @@ transformed parameters{
     int current_order = order[i];
     int current_ppt = id_ppt[i];
     int current_img = id_img[i];
+    int current_nei = N_neighbors[i];
     int from = obj_index_from[current_image];
     int to = obj_index_to[current_image];
     vector[N_obj_in_image[current_image]] weights_obj = softmax(z_weights_obj[from:to]);
@@ -70,7 +72,7 @@ transformed parameters{
     // saliency
     log_lik_xy[2] += log_lik_saliency[i];
     
-    att_filter[2] += log_sum_exp(saliency_log[i] - distances * sigma_attention[current_ppt]);
+    att_filter[2] += log_sum_exp(saliency_log[i][1:current_nei] - mean_sq_distances[i][1:current_nei] / square(sigma_attention[current_ppt]));
     
     //distance bias
     if(current_order != 1){
