@@ -12,6 +12,11 @@ and is based on the stimulus materials provided in Xu et al. (2014).
 First, we clean the data and prepare relevant indexes (i.e., id of
 participants need to be recoded from factors to integers for Stan).
 
+NB. All data are in a coordinate system with origin (0, 0) in the
+top-left of the picture (i.e., compared to classic cartesian coordinate
+system, the y-axis is inverted). This is a standard in eye-tracking and
+image processing, but it is mentioned here to avoid confusion.
+
 ``` r
 library(tidyverse)
 library(imager)
@@ -32,6 +37,8 @@ df_clean$duration <- df_clean[['duration (ms)']]/1000
 df_clean$id_ppt <- as.integer(df_clean$ppt)
 df_clean$id_img <- as.integer(as.factor(df_clean$image))
 
+df_clean$image  <- as.character(df_clean$image)
+
 # arrange by ppt, img, and order of fixations
 df_clean <- dplyr::arrange(df_clean, id_ppt, id_img, order)
 
@@ -42,7 +49,17 @@ df_clean <- dplyr::select(df_clean, id_ppt, id_img, order, ppt, image, trial, x,
 readr::write_csv(df_clean, path = here::here("data", "object_familiarity", "fixations.csv"))
 rm(df, df_clean)
 # load again (check whether it can be loaded correctly)
-df <- readr::read_csv(file = here::here("data", "object_familiarity", "fixations.csv"))
+cols_spec <- readr::cols(
+  id_ppt = readr::col_integer(),
+  id_img = readr::col_integer(),
+  order  = readr::col_integer(),
+  ppt    = readr::col_character(),
+  image  = readr::col_character(),
+  trial  = readr::col_integer(),
+  x      = readr::col_double(),
+  y      = readr::col_double()
+)
+df <- readr::read_csv(file = here::here("data", "object_familiarity", "fixations.csv"), col_types = cols_spec)
 ```
 
 Here, we assign each trial into a sample which is used for model
@@ -142,23 +159,69 @@ cloning the Itti and Koch saliency repository from
 <https://github.com/tamanobi/saliency-map>, originally created by Mayo
 Yamasaki.
 
+We downsample the image saliency by a factor of 20 in each dimension.
+First, we apply the gaussian blur with sd = 10 and range of 20, then
+take every 20<sup>th</sup> row and column. That means that a picture of
+dimensions 800 by 600 pixels will have a downsampled saliency map of
+size 40 by 30 aggregated pixels. Each of the aggregated pixels then
+subtends an area of 1200 original pixels.
+
 ``` r
 library(imager)
 library(OpenImageR)
 source(here::here("R", "load_image.R"))
 
-img <- as.character(unique(df$image))
+img <- unique(df$image)
 img_names <- paste0(img, ".jpg")
 
+# load images that are used in the experiment
 saliency <- lapply(img_names, load_image, folder = here::here("data", "saliency"))
-saliency_downsampled <- lapply(saliency, function(s) imager::as.cimg(OpenImageR::down_sample_image(as.matrix(s), 25, TRUE, 10, 50)))
+# downsample
+saliency_downsampled <- lapply(saliency, function(s) imager::as.cimg(OpenImageR::down_sample_image(as.matrix(s), down_pars$factor, TRUE, down_pars$sigma, down_pars$range)))
 names(saliency) <- names(saliency_downsampled) <- img
 
+# save downsampled images
 for(i in img){
   imager::save.image(im = saliency_downsampled[[i]],
                      file = here::here("data", "saliency", sprintf("%s_downsampled.jpg", i)),
                      quality = 1)
 }
+```
+
+Here, we normalize the saliency map to that each map sums up to 1 and
+reshape for convenience.
+
+``` r
+# convert to long format
+saliency_normalized <- lapply(saliency_downsampled, as.data.frame)
+image_key <- dplyr::select(df, id_img, image) %>% unique()
+for(i in img){
+  s <- saliency_normalized[[i]]
+  # normalize map
+  s$value_normalized <- s$value / sum(s$value)
+  # keep info about index of pixel
+  s$row <- s$x
+  s$col <- s$y
+  s$idx <- seq_len(nrow(s))
+  # rescale to original coordinates
+  resc <- function(x, factor = 2) {(factor*(x-1) + 1 + factor*x)/2}
+  s$x <- resc(s$x, down_pars$factor)
+  s$y <- resc(s$y, down_pars$factor)
+  
+  s$image <- i
+  s$id_img <- image_key$id_img [image_key$image == i]
+  # compute the log of the normalized saliency map (discrete)
+  s$saliency_log <- log(s$value_normalized)
+  
+  # compute the log of the density saliency map (standardize by area of pixels)
+  s$log_lik_saliency <- s$saliency_log - log(down_pars$area)
+  
+  saliency_normalized[[i]] <- select(s, id_img, image, row, col, idx, x, y, value, value_normalized, saliency_log, log_lik_saliency)
+}
+
+saliency_normalized <- dplyr::bind_rows(saliency_normalized)
+
+readr::write_csv(saliency_normalized, path = here::here("data", "saliency.csv"))
 ```
 
 ## References
