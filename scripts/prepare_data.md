@@ -127,8 +127,8 @@ barplot(trains %>% subset(train) %>% .$id_ppt %>% table(), main = "Trials in tra
 <img src="prepare_data_files/figure-gfm/n_per_ppt-1.png" width="100%" style="display: block; margin: auto;" />
 
 ``` r
-readr::write_csv(df %>% subset(train), path = here::here("data", "object_familiarity", "fixations_train.csv"))
-readr::write_csv(df %>% subset(!train), path = here::here("data", "object_familiarity", "fixations_validate.csv"))
+readr::write_csv(df %>% subset(train), path = here::here("data", "fixations_train.csv"))
+readr::write_csv(df %>% subset(!train), path = here::here("data", "fixations_validate.csv"))
 ```
 
 ## Saliency data
