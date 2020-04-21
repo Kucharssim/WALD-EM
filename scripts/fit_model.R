@@ -37,3 +37,4 @@ stan_data <- list(
 )
 
 fit <- rstan::sampling(model, stan_data, chains = 4, cores = 4, warmup = 1000, iter = 2000)
+save(fit, file = here::here("saves", "fit_model.Rdata"))
