@@ -1,6 +1,6 @@
 # Application of the Dynamic model of eye movements on the Renswoude's object familiarity data
 library(rstan)
-rstan_options(auto_write = TRUE)
+rstan_options(auto_write = FALSE)
 library(here)
 
 # load cleaned data
@@ -40,5 +40,5 @@ stan_data <- list(
   # ub_y              = 600
 )
 
-fit <- rstan::sampling(model, stan_data, chains = 10, cores = 10, warmup = 1000, iter = 2000)
+fit <- rstan::sampling(model, stan_data, chains = 10, cores = 10, warmup = 1000, iter = 1500)
 save(fit, file = here::here("saves", "fit_model.Rdata"))
