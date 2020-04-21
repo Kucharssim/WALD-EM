@@ -262,7 +262,8 @@ We also extracted the information about the objects on the scenes.
 
 ```{r objects}
 obj <- read.csv(here::here("data", "object_familiarity", "cen700.txt"), sep = "", dec = ".")
-obj$image <- as.character(1000 + 1)
+obj$image <- as.character(1000 + obj$image)
+obj <- subset(obj, image %in% image_key$image)
 
 objects <- dplyr::tibble(id_img = image_key$id_img[sapply(obj$image, function(i) which(i == image_key$image))],
                          image  = obj$image,
@@ -274,6 +275,14 @@ objects <- dplyr::tibble(id_img = image_key$id_img[sapply(obj$image, function(i)
                          min_y  = obj$min_y,
                          max_x  = obj$max_x,
                          max_y  = obj$max_y)
+
+objects_in_images <- objects %>% 
+  dplyr::arrange  (id_img) %>%
+  dplyr::group_by (id_img) %>%
+  dplyr::summarise(n = dplyr::n()) %>%
+  dplyr::mutate   (to = cumsum(n)) %>%
+  dplyr::mutate   (from = to - n + 1) %>%
+  dplyr::select   (id_img, n, from, to)
 ```
 
 
@@ -285,7 +294,7 @@ readr::write_csv(as.data.frame(mean_sq_distances), path = here::here("data", "me
 readr::write_csv(as.data.frame(saliency_log),      path = here::here("data", "saliency_log.csv"))
 readr::write_csv(objects,               path = here::here("data", "objects.csv"))
 
-save(df, mean_sq_distances, saliency_log, saliency_normalized, image_key, objects, 
+save(df, mean_sq_distances, saliency_log, saliency_normalized, image_key, objects, objects_in_images,
      file = here::here("data", "cleaned_data.Rdata"))
 ```
 
