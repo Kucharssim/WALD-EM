@@ -25,6 +25,11 @@ data{
   int<lower=1,upper=max_neighbors> N_neighbors[N_obs]; // the number of closest pixels that we take into account when calculating the drift rate
   vector[max_neighbors] mean_sq_distances[N_obs];      // distances of the neighbors to the fixation locations
   vector[max_neighbors] saliency_log[N_obs];           // log of saliences of the neighbors
+  
+  real lb_x;
+  real ub_x;
+  real lb_y;
+  real ub_y;
 }
 parameters{
   real<lower=0> sigma_center; // width of the central bias
@@ -63,9 +68,10 @@ transformed parameters{
     real nu;
     
     // object oriented behavior
-    log_lik_xy[1] += mixture_normals(x[i], y[i], weights_obj, 
-                                     obj_center_x[from:to], scale_obj * obj_width [from:to],
-                                     obj_center_y[from:to], scale_obj * obj_height[from:to]);
+    log_lik_xy[1] += mixture_trunc_normals(x[i], y[i], weights_obj, 
+                                           obj_center_x[from:to], scale_obj * obj_width [from:to],
+                                           obj_center_y[from:to], scale_obj * obj_height[from:to],
+                                           lb_x, ub_x, lb_y, ub_y);
                                      
     att_filter[1] += log_integral_attention_mixture_2d(x[i], y[i], weights_obj, 
                                                        obj_center_x[from:to], scale_obj * obj_width [from:to],
@@ -79,15 +85,15 @@ transformed parameters{
     
     //distance bias
     if(current_order != 1){
-      log_lik_xy[3] += normal_lpdf(x[i] | x[i-1], sigma_distance);
-      log_lik_xy[3] += normal_lpdf(y[i] | y[i-1], sigma_distance);
+      log_lik_xy[3] += trunc_normal_lpdf(x[i] | x[i-1], sigma_distance, lb_x, ub_x);
+      log_lik_xy[3] += trunc_normal_lpdf(y[i] | y[i-1], sigma_distance, lb_y, ub_y);
     } else{
       log_lik_xy[3] += negative_infinity();
     }
     
     // central bias
-    log_lik_xy[4] += normal_lpdf(x[i] | 400, sigma_center);
-    log_lik_xy[4] += normal_lpdf(y[i] | 300, sigma_center);
+    log_lik_xy[4] += trunc_normal_lpdf(x[i] | 400, sigma_center, lb_x, ub_x);
+    log_lik_xy[4] += trunc_normal_lpdf(y[i] | 300, sigma_center, lb_y, ub_y);
 
     log_sum_exp_log_lik_xy += log_sum_exp(log_lik_xy);
     nu = log_sum_exp(log_weights[1:2]) - log_sum_exp(att_filter);

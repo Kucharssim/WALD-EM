@@ -32,7 +32,12 @@ stan_data <- list(
   max_neighbors     = ncol(saliency_log),
   N_neighbors       = df_fit$n_neighbors,
   mean_sq_distances = mean_sq_distances[df$train,,drop=FALSE],
-  saliency_log      = saliency_log     [df$train,,drop=FALSE]
+  saliency_log      = saliency_log     [df$train,,drop=FALSE],
+  
+  lb_x              = 0,
+  ub_x              = 800,
+  lb_y              = 0,
+  ub_y              = 600
 )
 
 fit <- rstan::sampling(model, stan_data, chains = 10, cores = 10, warmup = 1000, iter = 2000)
