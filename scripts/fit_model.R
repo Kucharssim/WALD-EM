@@ -35,5 +35,5 @@ stan_data <- list(
   saliency_log      = saliency_log     [df$train,,drop=FALSE]
 )
 
-fit <- rstan::sampling(model, stan_data, chains = 4, cores = 4, warmup = 1000, iter = 2000)
+fit <- rstan::sampling(model, stan_data, chains = 10, cores = 10, warmup = 1000, iter = 2000)
 save(fit, file = here::here("saves", "fit_model.Rdata"))
