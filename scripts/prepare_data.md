@@ -1,13 +1,14 @@
 Data Preparation
 ================
 Simon Kucharsky
-2020-04-20
+2020-04-21
 
 ## Eye movement data
 
 The eye movement data comes from
-(<span class="citeproc-not-found" data-reference-id="Renswoude">**???**</span>),
-and is based on the stimulus materials provided in Xu et al. (2014).
+(<span class="citeproc-not-found" data-reference-id="Renswoude">**???**</span>)
+<https://osf.io/dp245>, and is based on the stimulus materials provided
+in Xu et al. (2014).
 
 First, we clean the data and prepare relevant indexes (i.e., id of
 participants need to be recoded from factors to integers for Stan).
@@ -27,8 +28,8 @@ ggplot2::theme_set(ggplot2::theme_classic())
 df <- read.csv(here::here("data", "object_familiarity", "Fixations_all.csv"), sep = ";", dec = ",")
 
 # get relevant variables
-df_clean <- dplyr::select(df, PP, Trial, Order, image, mean_x, mean_y, Duration)
-names(df_clean) <- c("ppt", "trial", "order", "image", "x", "y", "duration (ms)")
+df_clean <- dplyr::select(df, PP, Trial, Order, image, mean_x, mean_y, Duration, AGE)
+names(df_clean) <- c("ppt", "trial", "order", "image", "x", "y", "duration (ms)", "age")
 
 # convert duration from ms to sec
 df_clean$duration <- df_clean[['duration (ms)']]/1000
@@ -43,7 +44,7 @@ df_clean$image  <- as.character(df_clean$image)
 df_clean <- dplyr::arrange(df_clean, id_ppt, id_img, order)
 
 # reorder variables
-df_clean <- dplyr::select(df_clean, id_ppt, id_img, order, ppt, image, trial, x, y, duration)
+df_clean <- dplyr::select(df_clean, id_ppt, id_img, order, ppt, image, age, trial, x, y, duration)
 
 # save
 readr::write_csv(df_clean, path = here::here("data", "object_familiarity", "fixations.csv"))
@@ -55,6 +56,7 @@ cols_spec <- readr::cols(
   order  = readr::col_integer(),
   ppt    = readr::col_character(),
   image  = readr::col_character(),
+  age    = readr::col_double(),
   trial  = readr::col_integer(),
   x      = readr::col_double(),
   y      = readr::col_double()
