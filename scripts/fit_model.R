@@ -1,12 +1,11 @@
 # Application of the Dynamic model of eye movements on the Renswoude's object familiarity data
-library(tidyverse)
 library(rstan)
 rstan_options(auto_write = TRUE)
 library(here)
 
 # load cleaned data
 load(here::here("data", "cleaned_data.Rdata"))
-df_fit <- df %>% subset(train)
+df_fit <- subset(df, train)
 
 model <- rstan::stan_model(here::here("stan", "objects_central_distance_saliency.stan"))
 
