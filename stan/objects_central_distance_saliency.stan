@@ -10,7 +10,7 @@ data{
   real<lower=0> duration[N_obs]; // fixation duration
   int N_obj; // total number of objects across all scenes
   vector[N_obj] obj_center_x; // x position of the center of objects
-  vector[N_obj] obj_center_x; // y position of the center of objects
+  vector[N_obj] obj_center_y; // y position of the center of objects
   vector[N_obj] obj_width; // width of objects
   vector[N_obj] obj_height; // height of objects
   int N_ppt; // number of participants
@@ -41,23 +41,26 @@ parameters{
 }
 transformed parameters{
   vector[4] log_weights = log(weights);
-  vector[N_obs] log_sum_exp_log_lik_xy;
-  vector[N_obs] wald_log_lik;
-  vector[N_obs] nu;
+  //vector[N_obs] log_sum_exp_log_lik_xy;
+  //vector[N_obs] wald_log_lik;
+  real log_sum_exp_log_lik_xy = 0;
+  real wald_log_lik = 0;
+  //vector[N_obs] nu;
   vector[N_ppt] alpha = exp(mu_log_alpha + sigma_log_alpha * z_log_alpha);
   vector[N_ppt] sigma_attention = exp(mu_log_sigma_attention + sigma_log_sigma_attention * z_log_sigma_attention);
 
   
   for(i in 1:N_obs){
     int current_order = order[i];
-    int current_ppt = id_ppt[i];
-    int current_img = id_img[i];
-    int current_nei = N_neighbors[i];
-    int from = obj_index_from[current_image];
-    int to = obj_index_to[current_image];
-    vector[N_obj_in_image[current_image]] weights_obj = softmax(z_weights_obj[from:to]);
+    int current_ppt   = id_ppt[i];
+    int current_img   = id_img[i];
+    int current_nei   = N_neighbors[i];
+    int from          = obj_index_from[current_img];
+    int to            = obj_index_to[current_img];
+    vector[N_obj_in_img[current_img]] weights_obj = softmax(z_weights_obj[from:to]);
     vector[4] log_lik_xy = log_weights;
-    vector[2] att_filter = log_weights; // only objects and saliency
+    vector[2] att_filter = log_weights[1:2]; // only objects and saliency
+    real nu;
     
     // object oriented behavior
     log_lik_xy[1] += mixture_normals(x[i], y[i], weights_obj, 
@@ -65,8 +68,8 @@ transformed parameters{
                                      obj_center_y[from:to], scale_obj * obj_height[from:to]);
                                      
     att_filter[1] += log_integral_attention_mixture_2d(x[i], y[i], weights_obj, 
-                                                       x_obj_center[from:to], scale_obj * obj_width [from:to],
-                                                       y_obj_center[from:to], scale_obj * obj_height[from:to],
+                                                       obj_center_x[from:to], scale_obj * obj_width [from:to],
+                                                       obj_center_y[from:to], scale_obj * obj_height[from:to],
                                                        sigma_attention[current_ppt], sigma_attention[current_ppt]);
                                                        
     // saliency
@@ -86,30 +89,32 @@ transformed parameters{
     log_lik_xy[4] += normal_lpdf(x[i] | 400, sigma_center);
     log_lik_xy[4] += normal_lpdf(y[i] | 300, sigma_center);
 
-    log_sum_exp_log_lik_xy[i] = log_sum_exp(log_lik_xy);
-    nu[i] = log_sum_exp(log_weights[1:2]) - log_sum_exp(att_filter);
+    log_sum_exp_log_lik_xy += log_sum_exp(log_lik_xy);
+    nu = log_sum_exp(log_weights[1:2]) - log_sum_exp(att_filter);
     
-    wald_log_lik[i] = wald_lpdf(duration[i] | alpha[current_ppt], nu[i], 0);
+    wald_log_lik += wald_lpdf(duration[i] | alpha[current_ppt], nu);
   }
   
 }
 model{
-  target += sum(log_sum_exp_log_lik_xy);
-  target += sum(wald_log_lik);
+  target += log_sum_exp_log_lik_xy;
+  target += wald_log_lik;
   
-  sigma_center ~ gamma(2, 0.02);
+  sigma_center   ~ gamma(2, 0.02);
   sigma_distance ~ gamma(2, 0.02);
-  scale_obj ~ normal(1, 2);
-  weights ~ dirichlet(rep_vector(1, 3));
-  z_weights_obj ~ std_normal();
+  scale_obj      ~ normal(1, 0.5);
+  weights        ~ dirichlet(rep_vector(1, 4));
+  z_weights_obj  ~ std_normal();
   
-  mu_log_alpha ~ normal(0, 0.5);
-  mu_log_sigma_attention ~ normal(0, 3);
-  sigma_log_alpha ~ gamma(2, 2);
+  mu_log_alpha              ~ normal(0, 0.5);
+  sigma_log_alpha           ~ gamma(2, 2);
+  z_log_alpha               ~ std_normal();
+  
+  mu_log_sigma_attention    ~ normal(0, 3);
   sigma_log_sigma_attention ~ gamma(2, 2);
-  z_log_alpha ~ std_normal();
-  z_log_sigma_attention ~ std_normal();
+  z_log_sigma_attention     ~ std_normal();
 }
+/*
 generated quantities{
   vector[N_obs] mean_duration_pred;
   vector[N_obs] duration_pred;
@@ -122,3 +127,5 @@ generated quantities{
     log_lik[i] = wald_log_lik[i] + log_sum_exp_log_lik_xy[i];
   }
 }
+*/
+
