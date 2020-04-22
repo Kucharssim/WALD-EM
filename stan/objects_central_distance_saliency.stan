@@ -116,14 +116,14 @@ model{
   sigma_center   ~ gamma(2, 0.02);
   sigma_distance ~ gamma(2, 0.02);
   scale_obj      ~ normal(1, 0.5);
-  weights        ~ dirichlet(rep_vector(1, 4));
+  weights        ~ dirichlet(rep_vector(2, 4));
   z_weights_obj  ~ std_normal();
   
   mu_log_alpha              ~ normal(0, 0.5);
   sigma_log_alpha           ~ gamma(2, 2);
   z_log_alpha               ~ std_normal();
   
-  mu_log_sigma_attention    ~ normal(0, 3);
+  mu_log_sigma_attention    ~ normal(2, 1);
   sigma_log_sigma_attention ~ gamma(2, 2);
   z_log_sigma_attention     ~ std_normal();
 }
