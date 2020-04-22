@@ -1,7 +1,7 @@
 Data Preparation
 ================
 Simon Kucharsky
-2020-04-21
+2020-04-22
 
 ## Eye movement data
 
@@ -160,7 +160,7 @@ First, we apply the gaussian blur with sd = 20 and range of 40, then
 take every 40<sup>th</sup> row and column. That means that a picture of
 dimensions 800 by 600 pixels will have a downsampled saliency map of
 size 20 by 15 aggregated pixels. Each of the aggregated pixels then
-subtends an area of 300 original pixels.
+subtends an area of 1600 original pixels.
 
 ``` r
 library(imager)

@@ -142,10 +142,12 @@ We already preprocessed the stimuli images using the Itti and Koch algorithm. Th
 
 ```{r down_pars, echo = FALSE}
 down_pars <- list(factor = 40, sigma = 20, range = 40)
-down_pars$area <- 800/down_pars$factor * 600/down_pars$factor
+down_pars$new_width  <- 800  / down_pars$factor
+down_pars$new_height <- 600 / down_pars$factor
+down_pars$area <- 800/down_pars$new_width * 600/down_pars$new_height 
 ```
 
-We downsample the image saliency by a factor of `r down_pars$factor` in each dimension. First, we apply the gaussian blur with sd = `r down_pars$sigma` and range of `r down_pars$range`, then take every `r down_pars$factor`^th^ row and column. That means that a picture of dimensions 800 by 600 pixels will have a downsampled saliency map of size `r 800/down_pars$factor` by `r 600/down_pars$factor` aggregated pixels. Each of the aggregated pixels then subtends an area of `r down_pars$area` original pixels.
+We downsample the image saliency by a factor of `r down_pars$factor` in each dimension. First, we apply the gaussian blur with sd = `r down_pars$sigma` and range of `r down_pars$range`, then take every `r down_pars$factor`^th^ row and column. That means that a picture of dimensions 800 by 600 pixels will have a downsampled saliency map of size `r down_pars$new_width` by `r down_pars$new_height` aggregated pixels. Each of the aggregated pixels then subtends an area of `r down_pars$area` original pixels.
 
 ```{r downsample_saliency}
 library(imager)
