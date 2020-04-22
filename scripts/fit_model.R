@@ -40,5 +40,6 @@ stan_data <- list(
   # ub_y              = 600
 )
 
-fit <- rstan::sampling(model, stan_data, chains = 10, cores = 10, warmup = 1000, iter = 1500)
-save(fit, file = here::here("saves", "fit_model.Rdata"))
+fit <- rstan::sampling(model, stan_data, chains = 10, cores = 10, warmup = 1000, iter = 2000)
+save(fit,       file = here::here("saves", "fit_model.Rdata"))
+save(stan_data, file = here::here("saves", "stan_data.Rdata"))
