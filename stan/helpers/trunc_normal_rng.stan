@@ -4,3 +4,4 @@
     real u = uniform_rng(p1, p2);
     return (sigma * inv_Phi(u)) + mu;  // inverse cdf
   }
+

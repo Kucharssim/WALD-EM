@@ -27,12 +27,11 @@ data{
   vector[max_neighbors] mean_sq_distances[N_obs];      // distances of the neighbors to the fixation locations
   vector[max_neighbors] saliency_log[N_obs];           // log of saliences of the neighbors
   
-  /*
-  real lb_x;
-  real ub_x;
-  real lb_y;
-  real ub_y;
-  */
+  int N_pix;
+  real half_width_pixel;
+  vector[N_pix] saliency_center_x;
+  vector[N_pix] saliency_center_y;
+  simplex[N_pix] saliency[N_img];
 }
 parameters{
   real<lower=0> sigma_center; // width of the central bias
@@ -72,6 +71,7 @@ generated quantities{
     real nu;
     int factor = categorical_rng(weights);
     int object = categorical_rng(weights_obj);
+    vector[2] xy_rep = rep_vector(0, 2);
     
     // prediction fixation duration
     att_filter[1] += log_integral_attention_mixture_2d(x[i], y[i], weights_obj, 
@@ -90,8 +90,9 @@ generated quantities{
       x_rep[i] = trunc_normal_rng(obj_center_x[from:to][object], scale_obj * obj_width [from:to][object], 0, 800);
       y_rep[i] = trunc_normal_rng(obj_center_y[from:to][object], scale_obj * obj_height[from:to][object], 0, 600);
     } else if(factor == 2){ // saliency
-      x_rep[i] = 0;
-      y_rep[i] = 0;
+      xy_rep   = saliency_rng(saliency[current_img], saliency_center_x, saliency_center_y, half_width_pixel);
+      x_rep[i] = xy_rep[1] - 0.5;
+      y_rep[i] = xy_rep[2] - 0.5;
     } else if(factor == 3){ // exploitation
       if(current_order){
         x_rep[i] = trunc_normal_rng(400, sigma_distance, 0, 800);
