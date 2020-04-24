@@ -143,9 +143,7 @@ rm(x_rep, y_rep)
 xy_rep_sub <- subset(xy_rep, (iter %% 200) == 0)
 xy_rep_sub <- dplyr::full_join(xy_rep_sub, dplyr::select(df_sub, obs, id_ppt, id_img))
 
-img <- 2
-xy <- xy_rep_sub %>% subset(id_img == 2)
-
+pb <- dplyr::progress_estimated(n = dplyr::n_distinct(df_sub$id_img))
 for(img in unique(df_sub$id_img)){
   image_name <- paste0(image_key$image[image_key$id_img == img], ".jpg")
   image <- load_image(image_name)
@@ -186,7 +184,7 @@ for(img in unique(df_sub$id_img)){
     ggplot2::ggtitle("Objects")
   
   # plot saliency
-  pp_5 <- ggplot2::ggplot(subset(saliency_normalized, id_img = img), ggplot2::aes(x = x-0.5, y = y-0.5, fill = value)) +
+  pp_5 <- ggplot2::ggplot(subset(saliency_normalized, id_img == img), ggplot2::aes(x = x-0.5, y = y-0.5, fill = value)) +
     ggplot2::geom_raster() +
     ggplot2::scale_fill_gradient(low = "black", high = "white") + 
     ggplot2::scale_y_continuous(trans = scales::reverse_trans()) +
@@ -233,6 +231,8 @@ for(img in unique(df_sub$id_img)){
   pp <- pp_1 + pp_2 + pp_3 + pp_4 + pp_5 + pp_6 + pp_7 + patchwork::plot_layout(design = layout)
   
   ggplot2::ggsave(image_name, pp, path = here::here("figures/fit_model/in_sample/xy"))
+  
+  pb$tick()$print()
 }
 # Saccade amplitude check ----
 
