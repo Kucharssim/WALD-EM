@@ -3,6 +3,8 @@ library(rstan)
 library(here)
 library(tidybayes)
 library(patchwork)
+library(imager)
+library(ggforce)
 
 ggplot2::theme_set(ggplot2::theme_classic(base_size = 14))
 ggplot2::theme_update(axis.ticks.length = ggplot2::unit(6, "pt"), 
@@ -14,10 +16,11 @@ load(here::here("data", "cleaned_data.Rdata"))
 load(here::here("saves", "fit_model.Rdata"))
 load(here::here("saves", "stan_data.Rdata"))
 
+summary_pars <- summary(fit)$summary
 # expose stan functions
 #source(here::here("R", "expose_helpers_stan.R"))
 source(here::here("R", "colours.R"))
-
+source(here::here("R", "load_image.R"))
 # create list from data to pass to Stan
 df_sub <- subset(df, train)
 df_sub <- dplyr::mutate(df_sub, obs = 1:nrow(df_sub))
@@ -73,7 +76,7 @@ mcmc_pred <- as.data.frame(posterior_predictives)
 duration_rep <- mcmc_pred %>% 
   dplyr::select(dplyr::starts_with("duration"))
 duration_rep$iter <- 1:nrow(duration_rep) 
-duration_rep <- tidyr::pivot_longer(duration_rep, cols = dplyr::starts_with("duration"), 
+duration_rep <- tidyr::pivot_longer(duration_rep, cols = dplyr::starts_with("duration"), names_prefix = "duration_rep",
                                     names_to = "obs", values_to = "duration")
 
 # there is a long tail of the predictions spanning to about 15 sec
@@ -116,25 +119,121 @@ p2 <- ggplot2::ggplot(df_sub, ggplot2::aes(x = duration)) +
 p1_2 <- p1 + p2
 p1_2
 
-ggplot2::ggsave(filename = "fixation_durations.tiff", path = here::here("figures", "in_sample"), plot = p1_2)
+ggplot2::ggsave(filename = "fixation_durations.tiff", path = here::here("figures", "fit_model", "in_sample"), plot = p1_2)
 
 # X and Y coordinates checks ----
 x_rep <- mcmc_pred %>% 
   dplyr::select(dplyr::starts_with("x"))
 x_rep$iter <- 1:nrow(x_rep) 
-x_rep <- tidyr::pivot_longer(x_rep, cols = dplyr::starts_with("x"), 
+x_rep <- tidyr::pivot_longer(x_rep, cols = dplyr::starts_with("x"), names_prefix = "x_rep",
                               names_to = "obs", values_to = "x")
 
 y_rep <- mcmc_pred %>% 
   dplyr::select(dplyr::starts_with("y"))
 y_rep$iter <- 1:nrow(y_rep) 
-y_rep <- tidyr::pivot_longer(y_rep, cols = dplyr::starts_with("y"), 
+y_rep <- tidyr::pivot_longer(y_rep, cols = dplyr::starts_with("y"), names_prefix = "y_rep",
                              names_to = "obs", values_to = "y")
 
 xy_rep <- dplyr::left_join(x_rep, y_rep)
+xy_rep$obs <- gsub("\\[", "", xy_rep$obs)
+xy_rep$obs <- gsub("\\]", "", xy_rep$obs)
+xy_rep$obs <- as.integer(xy_rep$obs)
 rm(x_rep, y_rep)
 
+xy_rep_sub <- subset(xy_rep, (iter %% 200) == 0)
+xy_rep_sub <- dplyr::full_join(xy_rep_sub, dplyr::select(df_sub, obs, id_ppt, id_img))
 
+img <- 2
+xy <- xy_rep_sub %>% subset(id_img == 2)
+
+for(img in unique(df_sub$id_img)){
+  image_name <- paste0(image_key$image[image_key$id_img == img], ".jpg")
+  image <- load_image(image_name)
+  image <- as.data.frame(image, wide = "c") %>% dplyr::mutate(rgb.val = rgb(c.1, c.2, c.3))
+  
+  # plot image
+  pp_1 <- ggplot2::ggplot(image, ggplot2::aes(x = x, y = y)) +
+    ggplot2::geom_raster(ggplot2::aes(fill = rgb.val)) +
+    ggplot2::scale_fill_identity() + 
+    ggplot2::scale_y_continuous(trans = scales::reverse_trans()) +
+    ggplot2::theme_void() +
+    ggplot2::coord_fixed() +
+    ggplot2::ggtitle("Stimulus")
+  
+  # plot observed fixations
+  pp_2 <- ggplot2::ggplot(subset(df_sub, id_img == img), ggplot2::aes(x = x, y = y)) +
+    ggplot2::geom_point(alpha = 0.5, shape = 19, col = cols_custom$dark_teal, fill = cols_custom$light_teal) + 
+    ggplot2::scale_y_continuous(trans = scales::reverse_trans()) +
+    ggplot2::theme_void() + 
+    ggplot2::coord_fixed() +
+    ggplot2::ggtitle("Observed fixations")
+  
+  # plot predicted fixations
+  pp_3 <- ggplot2::ggplot(subset(xy_rep_sub, id_img == img), ggplot2::aes(x = x, y = y)) +
+    ggplot2::geom_point(alpha = 0.1, shape = 19, col = cols_custom$dark, fill = cols_custom$light) + 
+    ggplot2::scale_y_continuous(trans = scales::reverse_trans()) +
+    ggplot2::theme_void() +
+    ggplot2::coord_fixed() +
+    ggplot2::ggtitle("Predicted fixations")
+  
+  # plot objects on the scene
+  pp_4 <- ggplot2::ggplot(subset(objects, id_img == img), ggplot2::aes(x = x, y = y)) +
+    ggplot2::geom_point(shape = 13) +
+    ggforce::geom_ellipse(ggplot2::aes(x0 = x, y0 = y, a = width/2, b = height/2, angle = 0)) +
+    ggplot2::scale_y_continuous(trans = scales::reverse_trans()) + 
+    ggplot2::theme_void() +
+    ggplot2::coord_fixed() +
+    ggplot2::ggtitle("Objects")
+  
+  # plot saliency
+  pp_5 <- ggplot2::ggplot(subset(saliency_normalized, id_img = img), ggplot2::aes(x = x-0.5, y = y-0.5, fill = value)) +
+    ggplot2::geom_raster() +
+    ggplot2::scale_fill_gradient(low = "black", high = "white") + 
+    ggplot2::scale_y_continuous(trans = scales::reverse_trans()) +
+    ggplot2::theme_void() +
+    ggplot2::theme(legend.position = "none") +
+    ggplot2::coord_fixed() +
+    ggplot2::ggtitle("Saliency")
+  
+  # plot exploitation
+  pp_6 <- ggplot2::ggplot(data.frame(x = c(100, 200), y = c(450, 500)), ggplot2::aes(x = x, y = y)) +
+    ggplot2::geom_point() + 
+    #ggplot2::scale_y_continuous(trans = scales::reverse_trans(), limits = c(0, 600)) +
+    #ggplot2::scale_x_continuous(limits = c(0, 800)) + 
+    ggplot2::theme_void() +
+    ggplot2::coord_fixed() +
+    ggplot2::ggtitle("Exploitation")
+  
+  # central bias
+  dat.central <- tidyr::expand_grid(x = seq(0, 800, by = 5), y = seq(0, 600, by = 5))
+  dat.central$z <- dnorm(dat.central$x, 400, summary_pars["sigma_center", "mean"]) * dnorm(dat.central$y, 300, summary_pars["sigma_center", "mean"])
+  dat.central$z <- dat.central$z / max(dat.central$z)
+  
+  pp_7 <- ggplot2::ggplot(dat.central, ggplot2::aes(x = x, y = y, fill = z)) +
+    ggplot2::geom_raster() +
+    ggplot2::scale_fill_gradient(low = cols_custom$light, high = cols_custom$dark_highlight) + 
+    ggplot2::scale_y_continuous(trans = scales::reverse_trans()) +
+    ggplot2::theme_void() +
+    ggplot2::theme(legend.position = "none") +
+    ggplot2::coord_fixed() +
+    ggplot2::ggtitle("Central bias")
+    
+  
+  layout <- "
+  ####DD########
+  ####DD########
+  AAAAEEBBBBCCCC
+  AAAAEEBBBBCCCC
+  AAAAFFBBBBCCCC
+  AAAAFFBBBBCCCC
+  ####GG########
+  ####GG########
+  "
+  
+  pp <- pp_1 + pp_2 + pp_3 + pp_4 + pp_5 + pp_6 + pp_7 + patchwork::plot_layout(design = layout)
+  
+  ggplot2::ggsave(image_name, pp, path = here::here("figures/fit_model/in_sample/xy"))
+}
 # Saccade amplitude check ----
 
 # Saccade angle check ----
