@@ -5,3 +5,4 @@
 .DS_Store
 data/object_familiarity
 get_saliency
+saves/posterior_predictives_in_sample.Rdata

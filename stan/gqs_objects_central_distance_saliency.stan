@@ -1,7 +1,6 @@
 // hierarchical wald-mixture model
 functions{
 #include stan/helpers/load_functions.stan
-//#include stan/gqs/load_gqs.stan
 }
 data{
   int N_obs; // total number of observations
