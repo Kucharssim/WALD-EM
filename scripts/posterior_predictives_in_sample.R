@@ -153,7 +153,8 @@ for(img in unique(df_sub$id_img)){
   pp_1 <- ggplot2::ggplot(image, ggplot2::aes(x = x, y = y)) +
     ggplot2::geom_raster(ggplot2::aes(fill = rgb.val)) +
     ggplot2::scale_fill_identity() + 
-    ggplot2::scale_y_continuous(trans = scales::reverse_trans()) +
+    ggplot2::scale_y_continuous(trans = scales::reverse_trans(), limits = c(600, 0), expand = c(0, 0)) +
+    ggplot2::scale_x_continuous(limits = c(0, 800), expand = c(0, 0)) + 
     ggplot2::theme_void() +
     ggplot2::coord_fixed() +
     ggplot2::ggtitle("Stimulus")
@@ -161,16 +162,22 @@ for(img in unique(df_sub$id_img)){
   # plot observed fixations
   pp_2 <- ggplot2::ggplot(subset(df_sub, id_img == img), ggplot2::aes(x = x, y = y)) +
     ggplot2::geom_point(alpha = 0.5, shape = 19, col = cols_custom$dark_teal, fill = cols_custom$light_teal) + 
-    ggplot2::scale_y_continuous(trans = scales::reverse_trans()) +
+    ggplot2::scale_y_continuous(trans = scales::reverse_trans(), limits = c(600, 0), expand = c(0, 0)) +
+    ggplot2::scale_x_continuous(limits = c(0, 800), expand = c(0, 0)) + 
     ggplot2::theme_void() + 
     ggplot2::coord_fixed() +
     ggplot2::ggtitle("Observed fixations")
   
   # plot predicted fixations
   pp_3 <- ggplot2::ggplot(subset(xy_rep_sub, id_img == img), ggplot2::aes(x = x, y = y)) +
-    ggplot2::geom_point(alpha = 0.1, shape = 19, col = cols_custom$dark, fill = cols_custom$light) + 
-    ggplot2::scale_y_continuous(trans = scales::reverse_trans()) +
+    #ggplot2::stat_density_2d(aes(fill = ..density..), geom = "raster", contour = FALSE) +
+    #ggplot2::stat_density_2d(aes(fill = ..level..),   geom = "polygon", col = cols_custom$dark) +
+    ggplot2::scale_fill_gradient(low = cols_custom$light, high = cols_custom$dark) + 
+    ggplot2::geom_point(alpha = 0.05, shape = 19, col = cols_custom$dark_highlight, fill = cols_custom$light) + 
+    ggplot2::scale_y_continuous(trans = scales::reverse_trans(), limits = c(600, 0), expand = c(0, 0)) +
+    ggplot2::scale_x_continuous(limits = c(0, 800), expand = c(0, 0)) + 
     ggplot2::theme_void() +
+    ggplot2::theme(legend.position = "none") + 
     ggplot2::coord_fixed() +
     ggplot2::ggtitle("Predicted fixations")
   
@@ -178,7 +185,8 @@ for(img in unique(df_sub$id_img)){
   pp_4 <- ggplot2::ggplot(subset(objects, id_img == img), ggplot2::aes(x = x, y = y)) +
     ggplot2::geom_point(shape = 13) +
     ggforce::geom_ellipse(ggplot2::aes(x0 = x, y0 = y, a = width/2, b = height/2, angle = 0)) +
-    ggplot2::scale_y_continuous(trans = scales::reverse_trans()) + 
+    ggplot2::scale_y_continuous(trans = scales::reverse_trans(), limits = c(600, 0), expand = c(0, 0)) +
+    ggplot2::scale_x_continuous(limits = c(0, 800), expand = c(0, 0)) + 
     ggplot2::theme_void() +
     ggplot2::coord_fixed() +
     ggplot2::ggtitle("Objects")
@@ -187,53 +195,64 @@ for(img in unique(df_sub$id_img)){
   pp_5 <- ggplot2::ggplot(subset(saliency_normalized, id_img == img), ggplot2::aes(x = x-0.5, y = y-0.5, fill = value)) +
     ggplot2::geom_raster() +
     ggplot2::scale_fill_gradient(low = "black", high = "white") + 
-    ggplot2::scale_y_continuous(trans = scales::reverse_trans()) +
+    ggplot2::scale_y_continuous(trans = scales::reverse_trans(), limits = c(600, 0), expand = c(0, 0)) +
+    ggplot2::scale_x_continuous(limits = c(0, 800), expand = c(0, 0)) + 
     ggplot2::theme_void() +
     ggplot2::theme(legend.position = "none") +
     ggplot2::coord_fixed() +
     ggplot2::ggtitle("Saliency")
   
   # plot exploitation
-  pp_6 <- ggplot2::ggplot(data.frame(x = c(100, 200), y = c(450, 500)), ggplot2::aes(x = x, y = y)) +
-    ggplot2::geom_point() + 
-    #ggplot2::scale_y_continuous(trans = scales::reverse_trans(), limits = c(0, 600)) +
-    #ggplot2::scale_x_continuous(limits = c(0, 800)) + 
+  xp <- c(200, 600)
+  yp <- c(400, 200)
+  dat.distance   <- tidyr::expand_grid(x = seq(0, 800, by = 5), y = seq(0, 600, by = 5))
+  dat.distance$z1 <- dnorm(dat.central$x, xp[1], summary_pars["sigma_distance", "mean"]) * dnorm(dat.central$y, yp[1], summary_pars["sigma_distance", "mean"])
+  dat.distance$z2 <- dnorm(dat.central$x, xp[2], summary_pars["sigma_distance", "mean"]) * dnorm(dat.central$y, yp[2], summary_pars["sigma_distance", "mean"])
+  dat.distance$z  <- dat.distance$z1 + dat.distance$z2
+  
+  dat.mock <- data.frame(x=c(rnorm(5, xp[1], summary_pars["sigma_distance", "mean"]), rnorm(3, xp[2], summary_pars["sigma_distance", "mean"])),
+                         y=c(rnorm(5, yp[1], summary_pars["sigma_distance", "mean"]), rnorm(3, yp[2], summary_pars["sigma_distance", "mean"])),
+                         f=1:8)
+  pp_6 <- ggplot2::ggplot(dat.distance, ggplot2::aes(x = x, y = y)) +
+    ggplot2::geom_raster(ggplot2::aes(fill = z)) + 
+    ggplot2::geom_path(data = dat.mock, ggplot2::aes(x = x, y = y, col = f)) +
+    ggplot2::geom_point(data = dat.mock, ggplot2::aes(x = x, y = y), col = cols_custom$dark_teal) + 
+    ggplot2::scale_fill_gradient(low = cols_custom$light_trans, high = cols_custom$dark_highlight) +
+    ggplot2::scale_color_gradient(low = cols_custom$dark_teal, high = cols_custom$mid_teal) +
+    ggplot2::scale_y_continuous(trans = scales::reverse_trans(), limits = c(600, 0), expand = c(0, 0)) +
+    ggplot2::scale_x_continuous(limits = c(0, 800), expand = c(0, 0)) + 
     ggplot2::theme_void() +
-    ggplot2::coord_fixed() +
+    ggplot2::theme(legend.position = "none") +
+    ggplot2::coord_fixed() + 
     ggplot2::ggtitle("Exploitation")
   
-  # central bias
+  # plot central bias
   dat.central <- tidyr::expand_grid(x = seq(0, 800, by = 5), y = seq(0, 600, by = 5))
   dat.central$z <- dnorm(dat.central$x, 400, summary_pars["sigma_center", "mean"]) * dnorm(dat.central$y, 300, summary_pars["sigma_center", "mean"])
   dat.central$z <- dat.central$z / max(dat.central$z)
   
   pp_7 <- ggplot2::ggplot(dat.central, ggplot2::aes(x = x, y = y, fill = z)) +
     ggplot2::geom_raster() +
-    ggplot2::scale_fill_gradient(low = cols_custom$light, high = cols_custom$dark_highlight) + 
-    ggplot2::scale_y_continuous(trans = scales::reverse_trans()) +
+    ggplot2::scale_fill_gradient(low = cols_custom$light_trans, high = cols_custom$dark_highlight) + 
+    ggplot2::scale_y_continuous(trans = scales::reverse_trans(), limits = c(601, 0), expand = c(0, 0)) +
+    ggplot2::scale_x_continuous(limits = c(0, 801), expand = c(0, 0)) + 
     ggplot2::theme_void() +
     ggplot2::theme(legend.position = "none") +
     ggplot2::coord_fixed() +
     ggplot2::ggtitle("Central bias")
-    
   
-  layout <- "
-  ####DD########
-  ####DD########
-  AAAAEEBBBBCCCC
-  AAAAEEBBBBCCCC
-  AAAAFFBBBBCCCC
-  AAAAFFBBBBCCCC
-  ####GG########
-  ####GG########
-  "
+  # stich if together
+  pp_fac <- pp_4 + pp_5 + pp_6 + pp_7 + patchwork::plot_layout(ncol = 2)
+  pp <- pp_1 + pp_fac + pp_2 + pp_3 + patchwork::plot_layout(ncol = 2)
   
-  pp <- pp_1 + pp_2 + pp_3 + pp_4 + pp_5 + pp_6 + pp_7 + patchwork::plot_layout(design = layout)
-  
-  ggplot2::ggsave(image_name, pp, path = here::here("figures/fit_model/in_sample/xy"))
+  # save
+  ggplot2::ggsave(image_name, pp, path = here::here("figures/fit_model/in_sample/xy"),
+                  width = 20, height = 16, units = "cm")
   
   pb$tick()$print()
 }
+
+
 # Saccade amplitude check ----
 
 # Saccade angle check ----
