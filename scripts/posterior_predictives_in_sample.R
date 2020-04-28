@@ -119,7 +119,8 @@ p2 <- ggplot2::ggplot(df_sub, ggplot2::aes(x = duration)) +
 p1_2 <- p1 + p2
 p1_2
 
-ggplot2::ggsave(filename = "fixation_durations.tiff", path = here::here("figures", "fit_model", "in_sample"), plot = p1_2)
+ggplot2::ggsave(filename = "fixation_durations.jpg", path = here::here("figures", "fit_model", "in_sample"),
+                plot = p1_2, width = 8, height = 4)
 
 # X and Y coordinates checks ----
 x_rep <- mcmc_pred %>% 
