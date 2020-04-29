@@ -255,5 +255,46 @@ for(img in unique(df_sub$id_img)){
 
 
 # Saccade amplitude check ----
+# calculate aplitudes in data
+amplitude_dat <- plyr::ddply(.data = df_sub, .variables = c("id_ppt", "id_img"), .fun = function(d){
+  .prev <- 1:(nrow(d)-1)
+  .next <- 2:nrow(d) 
+  new_d <- data.frame(id_ppt = d$id_ppt[.prev], id_img = d$id_img[.prev],
+                      distance = sqrt( (d$x[.prev] - d$x[.next])^2 + (d$y[.prev] - d$y[.next])^2 )
+                      )
+})
+
+# calculate amplitudes (distances of predictions for the next fixation from the observed fixation)
+xy_rep_sub <- subset(xy_rep, (iter %% 100) == 0)
+xy_rep_sub <- dplyr::full_join(xy_rep_sub, dplyr::select(df_sub, obs, id_ppt, id_img))
+
+amplitude_pred <- plyr::ddply(.data = df_sub, .variables = c("id_ppt", "id_img", "obs"), .fun = function(d){
+  ppt_d <- d$id_ppt[1]
+  img_d <- d$id_img[1]
+  obs_d <- d$obs
+  x_d   <- d$x
+  y_d   <- d$y
+  
+  pred <- subset(xy_rep_sub, obs == obs_d + 1 & id_ppt == ppt_d & id_img == img_d)
+  
+  n_row <- nrow(pred)
+  if(n_row == 0){
+    return(data.frame(id_ppt=integer(), id_img=integer(), distance=numeric()))
+  } else{
+    out <- data.frame(
+      id_ppt = rep(ppt_d[1], n_row),
+      id_img = rep(img_d[1], n_row),
+      distance = sqrt( (pred$x - x_d)^2 + (pred$y - y_d)^2 )
+    )
+    
+    return(out)
+  }
+}, .progress = "text")
+
+
+ggplot2::ggplot(amplitude_dat, ggplot2::aes(x = distance)) + ggplot2::geom_histogram() + ggplot2::facet_grid(~id_img)
+
+ggplot2::ggplot(subset(xy_rep, obs == 103), ggplot2::aes(x = x, y = y)) + geom_point(size = 0.1, alpha = 0.1) +
+  geom_point(data = subset(df_sub, obs == 103), ggplot2::aes(x = x, y = y))
 
 # Saccade angle check ----

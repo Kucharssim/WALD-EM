@@ -93,12 +93,12 @@ generated quantities{
       x_rep[i] = xy_rep[1] - 0.5;
       y_rep[i] = xy_rep[2] - 0.5;
     } else if(factor == 3){ // exploitation
-      if(current_order){
+      if(current_order == 1){
         x_rep[i] = trunc_normal_rng(400, sigma_distance, 0, 800);
         y_rep[i] = trunc_normal_rng(300, sigma_distance, 0, 600);
       } else{
         x_rep[i] = trunc_normal_rng(x[i-1], sigma_distance, 0, 800);
-        y_rep[i] = trunc_normal_rng(x[i-1], sigma_distance, 0, 600);
+        y_rep[i] = trunc_normal_rng(y[i-1], sigma_distance, 0, 600);
       }
     } else{ // central bias
       x_rep[i] = trunc_normal_rng(400, sigma_center, 0, 800);

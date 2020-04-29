@@ -25,19 +25,12 @@ data{
   int<lower=1,upper=max_neighbors> N_neighbors[N_obs]; // the number of closest pixels that we take into account when calculating the drift rate
   vector[max_neighbors] mean_sq_distances[N_obs];      // distances of the neighbors to the fixation locations
   vector[max_neighbors] saliency_log[N_obs];           // log of saliences of the neighbors
-  
-  /*
-  real lb_x;
-  real ub_x;
-  real lb_y;
-  real ub_y;
-  */
 }
 parameters{
   real<lower=0> sigma_center; // width of the central bias
   real<lower=0> sigma_distance; // width of the distance bias
   real<lower=0> scale_obj; // scaling factor of the object size
-  simplex[4] weights; // objects, saliency, central bias, distance
+  simplex[4] weights; // objects, saliency, exploitation, central bias
   vector[N_obj] z_weights_obj; // logits of weights of individual objects
   real mu_log_alpha; // population mean of the log of the decision boundary
   real sigma_log_alpha; // population sigma of the log of the decision boundary 
@@ -47,14 +40,11 @@ parameters{
   vector[N_ppt] z_log_sigma_attention; // individual offsets of width (on the log scale) for non-centered parametrization
 }
 transformed parameters{
+  real log_sum_exp_log_lik_xy = 0; // this variable accumulates the log-likelihood of the fixation locations
+  real wald_log_lik = 0; // this variable accumulates the log-likelihood of the fixation durations
   vector[4] log_weights = log(weights);
-  //vector[N_obs] log_sum_exp_log_lik_xy;
-  //vector[N_obs] wald_log_lik;
-  real log_sum_exp_log_lik_xy = 0;
-  real wald_log_lik = 0;
-  //vector[N_obs] nu;
-  vector[N_ppt] alpha = exp(mu_log_alpha + sigma_log_alpha * z_log_alpha);
-  vector[N_ppt] sigma_attention = exp(mu_log_sigma_attention + sigma_log_sigma_attention * z_log_sigma_attention);
+  vector[N_ppt] alpha = exp(mu_log_alpha + sigma_log_alpha * z_log_alpha); // individual decision boundaries
+  vector[N_ppt] sigma_attention = exp(mu_log_sigma_attention + sigma_log_sigma_attention * z_log_sigma_attention); // individual widths of attention
 
   
   for(i in 1:N_obs){
@@ -65,17 +55,11 @@ transformed parameters{
     int from          = obj_index_from[current_img];
     int to            = obj_index_to[current_img];
     vector[N_obj_in_img[current_img]] weights_obj = softmax(z_weights_obj[from:to]);
-    vector[4] log_lik_xy = log_weights;
-    vector[2] att_filter = log_weights[1:2]; // only objects and saliency
-    real nu;
+    vector[4] log_lik_xy = log_weights; // this vector stores the logs of (x, y) under each factor
+    vector[2] att_filter = log_weights[1:2]; // only objects and saliency included in the calculation of drift
+    real nu; // drift
     
     // object oriented behavior
-    /*
-    log_lik_xy[1] += mixture_trunc_normals(x[i], y[i], weights_obj, 
-                                           obj_center_x[from:to], scale_obj * obj_width [from:to],
-                                           obj_center_y[from:to], scale_obj * obj_height[from:to],
-                                           lb_x, ub_x, lb_y, ub_y);
-    */
     log_lik_xy[1] += mixture_normals(x[i], y[i], weights_obj, 
                                      obj_center_x[from:to], scale_obj * obj_width [from:to],
                                      obj_center_y[from:to], scale_obj * obj_height[from:to]);  
@@ -90,12 +74,13 @@ transformed parameters{
     
     att_filter[2] += log_sum_exp(saliency_log[i][1:current_nei] - mean_sq_distances[i][1:current_nei] / square(sigma_attention[current_ppt]));
     
-    //distance bias
-    if(current_order != 1){
+    //exploitation
+    if(current_order == 1){
+      log_lik_xy[3] += normal_lpdf(x[i] | 400,    sigma_distance);
+      log_lik_xy[3] += normal_lpdf(y[i] | 300,    sigma_distance);
+    } else{
       log_lik_xy[3] += normal_lpdf(x[i] | x[i-1], sigma_distance);
       log_lik_xy[3] += normal_lpdf(y[i] | y[i-1], sigma_distance);
-    } else{
-      log_lik_xy[3] += negative_infinity();
     }
     
     // central bias
@@ -127,18 +112,4 @@ model{
   sigma_log_sigma_attention ~ gamma(2, 2);
   z_log_sigma_attention     ~ std_normal();
 }
-/*
-generated quantities{
-  vector[N_obs] mean_duration_pred;
-  vector[N_obs] duration_pred;
-  vector[N_obs] log_lik;
-  
-  for(i in 1:N_obs){
-    int current_ppt = id_ppt[i];
-    mean_duration_pred[i] = alpha[current_ppt] / nu[i];
-    duration_pred[i] = wald_rng(alpha[current_ppt], nu[i], 0);
-    log_lik[i] = wald_log_lik[i] + log_sum_exp_log_lik_xy[i];
-  }
-}
-*/
 
