@@ -328,6 +328,49 @@ p1_2
 ggplot2::ggsave(filename = "amplitude.jpg", path = here::here("figures", "fit_model", "in_sample"),
                 plot = p1_2, width = 8, height = 4)
 
+pb <- dplyr::progress_estimated(n = dplyr::n_distinct(df_sub$id_img))
+for(img in unique(df_sub$id_img)){
+  image_name <- paste0(image_key$image[image_key$id_img == img], ".jpg")
+  amplitude_dat_sub  <- subset(amplitude_dat,  id_img == img)
+  amplitude_pred_sub <- subset(amplitude_pred, id_img == img)
+  
+  p1 <- ggplot2::ggplot(amplitude_dat_sub, ggplot2::aes(x = distance, y = ..density..)) +
+    # plot histogram of data
+    ggplot2::geom_histogram(col = cols_custom$dark_teal, fill = cols_custom$light_teal, bins = 30) + 
+    ggplot2::geom_rug(mapping = ggplot2::aes(x = distance), 
+                      inherit.aes = FALSE, alpha = 0.05, length = ggplot2::unit(4, "pt"), sides = "b") +
+    # plot density of predictions
+    ggplot2::geom_density(data = amplitude_pred_sub, mapping = ggplot2::aes(x = distance), 
+                          col = cols_custom$dark, size = 1.5) +
+    ggplot2::xlab("Distance (pixels)") +
+    ggplot2::ylab("Density") + 
+    ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0.05, 0.1), add = c(0, 0))) +
+    ggplot2::scale_y_continuous(expand = ggplot2::expansion(mult = c(0, 0.1), add = c(0, 0)))
+  
+  p2 <- ggplot2::ggplot(amplitude_dat_sub, ggplot2::aes(x = distance)) +
+    # plot exdf of data
+    ggplot2::stat_ecdf(col = cols_custom$dark_teal, size = 1, n = 100) + 
+    ggplot2::geom_rug(mapping = ggplot2::aes(x = distance), 
+                      inherit.aes = FALSE, outside = FALSE, alpha = 0.05, length = ggplot2::unit(4, "pt"), sides = "b") +
+    # plot exdf of predictions
+    ggplot2::stat_ecdf(data = amplitude_pred_sub, mapping = ggplot2::aes(x = distance), 
+                       col = cols_custom$dark, size = 1.5) +
+    ggplot2::xlab("Distance (sec)") +
+    ggplot2::ylab("Cumulative probability") + 
+    ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0.05, 0.1), add = c(0, 0))) +
+    ggplot2::scale_y_continuous(expand = ggplot2::expansion(mult = c(0, 0), add = c(0, 0)))
+  
+  p1_2 <- p1 + p2
+  p1_2
+  
+  ggplot2::ggsave(filename = image_name, plot = p1_2, path = here::here("figures", "fit_model", "in_sample", "amplitude"), 
+                  width = 8, height = 5)
+  
+  pb$tick()$print()
+}
+
+
+
 # Saccade angle check ----
 # atan2: 0   pi - right
 #        0.5 pi - up
@@ -384,3 +427,26 @@ p1 <- ggplot2::ggplot(angle_dat, ggplot2::aes(x = angle, y = ..density..)) +
 
 ggplot2::ggsave(filename = "angle.jpg", plot = p1, path = here::here("figures", "fit_model", "in_sample"), 
                 width = 5, height = 5)
+
+pb <- dplyr::progress_estimated(n = dplyr::n_distinct(df_sub$id_img))
+for(img in unique(df_sub$id_img)){
+  image_name <- paste0(image_key$image[image_key$id_img == img], ".jpg")
+  angle_dat_sub  <- subset(angle_dat,  id_img == img)
+  angle_pred_sub <- subset(angle_pred, id_img == img)
+  
+  p1 <- ggplot2::ggplot(angle_dat_sub, ggplot2::aes(x = angle, y = ..density..)) + 
+    ggplot2::geom_histogram(col = cols_custom$dark_teal, fill = cols_custom$mid_teal, alpha = 0.8) +
+    ggplot2::geom_histogram(data=angle_pred_sub, col = cols_custom$dark, fill = cols_custom$mid, alpha = 0.8) +
+    ggplot2::coord_polar(start = -0.5*pi) + 
+    ggplot2::scale_x_continuous(limits = c(-pi, pi), 
+                                breaks = seq(-0.5, 1, by = 0.5)*pi,
+                                labels = c("down", "right", "up", "left")) +
+    ggplot2::scale_y_continuous(expand = c(0, 0.025)) +
+    ggplot2::theme_void() +
+    ggplot2::theme(axis.text.x = ggplot2::element_text(size = 12))
+  
+  ggplot2::ggsave(filename = image_name, plot = p1, path = here::here("figures", "fit_model", "in_sample", "angle"), 
+                  width = 5, height = 5)
+  
+  pb$tick()$print()
+}
