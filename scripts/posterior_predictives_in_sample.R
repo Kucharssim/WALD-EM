@@ -80,7 +80,7 @@ load(here::here("saves", "posterior_predictives_in_sample.Rdata"))
 
 mcmc_pred <- as.data.frame(posterior_predictives)
 
-# Density checks ----
+# Duration checks ----
 duration_rep <- mcmc_pred %>% 
   dplyr::select(dplyr::starts_with("duration"))
 duration_rep$iter <- 1:nrow(duration_rep) 
@@ -103,7 +103,7 @@ p1 <- ggplot2::ggplot(df_sub, ggplot2::aes(x = duration, y = ..density..)) +
                         col = cols_custom$dark, size = 1) +
   ggplot2::xlab("Fixation duration (sec)") +
   ggplot2::ylab("Density") + 
-  ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0.05, 0.1), add = c(0, 0))) +
+  ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0.05, 0.1), add = c(0, 0)), limits = c(0, max(df_sub$duration))) +
   ggplot2::scale_y_continuous(expand = ggplot2::expansion(mult = c(0, 0.1), add = c(0, 0)))
 
 p2 <- ggplot2::ggplot(df_sub, ggplot2::aes(x = duration)) +
@@ -118,7 +118,7 @@ p2 <- ggplot2::ggplot(df_sub, ggplot2::aes(x = duration)) +
                      col = cols_custom$dark, size = 1) +
   ggplot2::xlab("Fixation duration (sec)") +
   ggplot2::ylab("Cumulative probability") + 
-  ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0.05, 0.1), add = c(0, 0))) +
+  ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0.05, 0.1), add = c(0, 0)), limits = c(0, max(df_sub$duration))) +
   ggplot2::scale_y_continuous(expand = ggplot2::expansion(mult = c(0, 0), add = c(0, 0)))
 
 p1_2 <- p1 + p2
@@ -145,6 +145,8 @@ xy_rep$obs <- gsub("\\[", "", xy_rep$obs)
 xy_rep$obs <- gsub("\\]", "", xy_rep$obs)
 xy_rep$obs <- as.integer(xy_rep$obs)
 rm(x_rep, y_rep)
+
+xy_rep <- dplyr::full_join(xy_rep, dplyr::select(df_sub, obs, id_ppt, id_img))
 
 pb <- dplyr::progress_estimated(n = dplyr::n_distinct(df_sub$id_img))
 for(img in unique(df_sub$id_img)){
@@ -209,8 +211,8 @@ for(img in unique(df_sub$id_img)){
   xp <- c(200, 600)
   yp <- c(400, 200)
   dat.distance   <- tidyr::expand_grid(x = seq(0, 800, by = 5), y = seq(0, 600, by = 5))
-  dat.distance$z1 <- dnorm(dat.central$x, xp[1], summary_pars["sigma_distance", "mean"]) * dnorm(dat.central$y, yp[1], summary_pars["sigma_distance", "mean"])
-  dat.distance$z2 <- dnorm(dat.central$x, xp[2], summary_pars["sigma_distance", "mean"]) * dnorm(dat.central$y, yp[2], summary_pars["sigma_distance", "mean"])
+  dat.distance$z1 <- dnorm(dat.distance$x, xp[1], summary_pars["sigma_distance", "mean"]) * dnorm(dat.distance$y, yp[1], summary_pars["sigma_distance", "mean"])
+  dat.distance$z2 <- dnorm(dat.distance$x, xp[2], summary_pars["sigma_distance", "mean"]) * dnorm(dat.distance$y, yp[2], summary_pars["sigma_distance", "mean"])
   dat.distance$z  <- dat.distance$z1 + dat.distance$z2
   
   dat.mock <- data.frame(x=c(rnorm(5, xp[1], summary_pars["sigma_distance", "mean"]), rnorm(3, xp[2], summary_pars["sigma_distance", "mean"])),
@@ -292,11 +294,93 @@ amplitude_pred <- plyr::ddply(.data = df_sub, .variables = c("id_ppt", "id_img",
     return(out)
   }
 }, .progress = "text")
+amplitude_pred$iter <- 1:nrow(amplitude_pred)
 
+p1 <- ggplot2::ggplot(amplitude_dat, ggplot2::aes(x = distance, y = ..density..)) +
+  # plot histogram of data
+  ggplot2::geom_histogram(col = cols_custom$dark_teal, fill = cols_custom$light_teal, bins = 50) + 
+  ggplot2::geom_rug(mapping = ggplot2::aes(x = distance), 
+                    inherit.aes = FALSE, alpha = 0.05, length = ggplot2::unit(4, "pt"), sides = "b") +
+  # plot density of predictions
+  ggplot2::geom_density(data = amplitude_pred, mapping = ggplot2::aes(x = distance), 
+                        col = cols_custom$dark, size = 1.5) +
+  ggplot2::xlab("Distance (pixels)") +
+  ggplot2::ylab("Density") + 
+  ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0.05, 0.1), add = c(0, 0))) +
+  ggplot2::scale_y_continuous(expand = ggplot2::expansion(mult = c(0, 0.1), add = c(0, 0)))
 
-ggplot2::ggplot(amplitude_dat, ggplot2::aes(x = distance)) + ggplot2::geom_histogram() + ggplot2::facet_grid(~id_img)
+p2 <- ggplot2::ggplot(amplitude_dat, ggplot2::aes(x = distance)) +
+  # plot exdf of data
+  ggplot2::stat_ecdf(col = cols_custom$dark_teal, size = 1, n = 100) + 
+  ggplot2::geom_rug(mapping = ggplot2::aes(x = distance), 
+                    inherit.aes = FALSE, outside = FALSE, alpha = 0.05, length = ggplot2::unit(4, "pt"), sides = "b") +
+  # plot exdf of predictions
+  ggplot2::stat_ecdf(data = amplitude_pred, mapping = ggplot2::aes(x = distance), 
+                     col = cols_custom$dark, size = 1.5) +
+  ggplot2::xlab("Distance (sec)") +
+  ggplot2::ylab("Cumulative probability") + 
+  ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0.05, 0.1), add = c(0, 0))) +
+  ggplot2::scale_y_continuous(expand = ggplot2::expansion(mult = c(0, 0), add = c(0, 0)))
 
-ggplot2::ggplot(subset(xy_rep, obs == 103), ggplot2::aes(x = x, y = y)) + geom_point(size = 0.1, alpha = 0.1) +
-  geom_point(data = subset(df_sub, obs == 102), ggplot2::aes(x = x, y = y))
+p1_2 <- p1 + p2
+p1_2
+
+ggplot2::ggsave(filename = "amplitude.jpg", path = here::here("figures", "fit_model", "in_sample"),
+                plot = p1_2, width = 8, height = 4)
 
 # Saccade angle check ----
+# atan2: 0   pi - right
+#        0.5 pi - up
+#        1   pi - left
+#       -0.5 pi - down
+angle_dat <- plyr::ddply(.data = df_sub, .variables = c("id_ppt", "id_img"), .fun = function(d){
+  .prev <- 1:(nrow(d)-1)
+  .next <- 2:nrow(d) 
+  x <- d$x[.next] - d$x[.prev]
+  y <- d$y[.next] - d$y[.prev]
+  
+  new_d <- data.frame(id_ppt = d$id_ppt[.prev], id_img = d$id_img[.prev],
+                      angle = atan2(y, x)
+                      )
+  
+  return(new_d)
+})
+
+angle_pred <- plyr::ddply(.data = df_sub, .variables = c("id_ppt", "id_img", "obs"), .fun = function(d){
+  ppt_d <- d$id_ppt[1]
+  img_d <- d$id_img[1]
+  obs_d <- d$obs
+  x_d   <- d$x
+  y_d   <- d$y
+  
+  pred <- subset(xy_rep, obs == obs_d + 1 & id_ppt == ppt_d & id_img == img_d)
+  
+  n_row <- nrow(pred)
+  if(n_row == 0){
+    return(data.frame(id_ppt=integer(), id_img=integer(), angle=numeric()))
+  } else{
+    x <- pred$x - x_d
+    y <- pred$y - y_d
+    out <- data.frame(
+      id_ppt = rep(ppt_d[1], n_row),
+      id_img = rep(img_d[1], n_row),
+      angle  = atan2(y, x)
+    )
+    
+    return(out)
+  }
+}, .progress = "text")
+
+p1 <- ggplot2::ggplot(angle_dat, ggplot2::aes(x = angle, y = ..density..)) + 
+  ggplot2::geom_histogram(col = cols_custom$dark_teal, fill = cols_custom$mid_teal, alpha = 0.8) +
+  ggplot2::geom_histogram(data=angle_pred, col = cols_custom$dark, fill = cols_custom$mid, alpha = 0.8) +
+  ggplot2::coord_polar(start = -0.5*pi) + 
+  ggplot2::scale_x_continuous(limits = c(-pi, pi), 
+                              breaks = seq(-0.5, 1, by = 0.5)*pi,
+                              labels = c("down", "right", "up", "left")) +
+  ggplot2::scale_y_continuous(expand = c(0, 0.025)) +
+  ggplot2::theme_void() +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(size = 12))
+
+ggplot2::ggsave(filename = "angle.jpg", plot = p1, path = here::here("figures", "fit_model", "in_sample"), 
+                width = 5, height = 5)
