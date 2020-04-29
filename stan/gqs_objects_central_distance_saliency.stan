@@ -38,12 +38,12 @@ parameters{
   real<lower=0> scale_obj; // scaling factor of the object size
   simplex[4] weights; // objects, saliency, central bias, distance
   vector[N_obj] z_weights_obj; // logits of weights of individual objects
-  real mu_log_alpha; // population mean of the log of the decision boundary
-  real sigma_log_alpha; // population sigma of the log of the decision boundary 
-  vector[N_ppt] z_log_alpha; // individual offsets of boundary (on the log scale) for non-centered parametrization
-  real mu_log_sigma_attention; // population mean of the log of the width of attention window
-  real sigma_log_sigma_attention; // population sigma of the log ot the width of attention window 
-  vector[N_ppt] z_log_sigma_attention; // individual offsets of width (on the log scale) for non-centered parametrization
+  //real mu_log_alpha; // population mean of the log of the decision boundary
+  //real sigma_log_alpha; // population sigma of the log of the decision boundary 
+  //vector[N_ppt] z_log_alpha; // individual offsets of boundary (on the log scale) for non-centered parametrization
+  //real mu_log_sigma_attention; // population mean of the log of the width of attention window
+  //real sigma_log_sigma_attention; // population sigma of the log ot the width of attention window 
+  //vector[N_ppt] z_log_sigma_attention; // individual offsets of width (on the log scale) for non-centered parametrization
   vector[4] log_weights;
   vector[N_ppt] alpha;
   vector[N_ppt] sigma_attention;

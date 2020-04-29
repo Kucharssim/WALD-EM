@@ -14,7 +14,7 @@ ggplot2::theme_update(axis.ticks.length = ggplot2::unit(6, "pt"),
 # load data and fitted model
 load(here::here("data", "cleaned_data.Rdata"))
 load(here::here("saves", "fit_model.Rdata"))
-load(here::here("saves", "stan_data.Rdata"))
+# load(here::here("saves", "stan_data.Rdata"))
 
 summary_pars <- summary(fit)$summary
 # expose stan functions
@@ -62,17 +62,25 @@ stan_data <- list(
 
 gqs_model <- rstan::stan_model(here::here("stan", "gqs_objects_central_distance_saliency.stan"))
 
-mcmc <- as.matrix(fit)
-mcmc <- mcmc[, c(1:360, 363:457)]
+mcmc <- as.data.frame(fit)
+#mcmc <- mcmc[, c(1:360, 363:457)]
+mcmc <- mcmc %>% dplyr::select(sigma_center, sigma_distance, scale_obj, 
+                               dplyr::starts_with("weights"), 
+                               dplyr::starts_with("z_weights_obj"),
+                               dplyr::starts_with("log_weights"),
+                               dplyr::starts_with("alpha"), 
+                               dplyr::starts_with("sigma_attention"))
+mcmc <- mcmc %>% dplyr::sample_n(size = 40) # generate 100 predictives for every data point
+
 posterior_predictives <- rstan::gqs(gqs_model, data = stan_data, draws = mcmc)
 
 rm(fit, mcmc, stan_data, saliency_log) # unload memory a little
 save(posterior_predictives, file = here::here("saves", "posterior_predictives_in_sample.Rdata"))
 load(here::here("saves", "posterior_predictives_in_sample.Rdata"))
 
+mcmc_pred <- as.data.frame(posterior_predictives)
 
 # Density checks ----
-mcmc_pred <- as.data.frame(posterior_predictives)
 duration_rep <- mcmc_pred %>% 
   dplyr::select(dplyr::starts_with("duration"))
 duration_rep$iter <- 1:nrow(duration_rep) 
@@ -83,18 +91,15 @@ duration_rep <- tidyr::pivot_longer(duration_rep, cols = dplyr::starts_with("dur
 # but the proportion of the predictions that exceed max of the data is relatively small
 perc_pred_below_data <- mean(duration_rep$duration < max(df_sub$duration))
 
-# we can also thin the samples as we do not need that much accuracy in plotting (otherwise the plots can take quite a while)
-duration_rep_sub <- duration_rep %>% subset(duration < max(df_sub$duration) & (iter %% 200) == 0 )
-
 p1 <- ggplot2::ggplot(df_sub, ggplot2::aes(x = duration, y = ..density..)) +
   # plot histogram of data
   ggplot2::geom_histogram(col = cols_custom$dark_teal, fill = cols_custom$light_teal, bins = 50) + 
   ggplot2::geom_rug(mapping = ggplot2::aes(x = duration), 
                     inherit.aes = FALSE, alpha = 0.05, length = ggplot2::unit(4, "pt"), sides = "b") +
   # plot density of predictions
-  ggplot2::geom_density(data = duration_rep_sub, mapping = ggplot2::aes(x = duration, group = iter),
+  ggplot2::geom_density(data = duration_rep, mapping = ggplot2::aes(x = duration, group = iter),
                         col = cols_custom$mid_trans, alpha = 0.5) +
-  ggplot2::geom_density(data = duration_rep_sub, mapping = ggplot2::aes(x = duration), 
+  ggplot2::geom_density(data = duration_rep, mapping = ggplot2::aes(x = duration), 
                         col = cols_custom$dark, size = 1) +
   ggplot2::xlab("Fixation duration (sec)") +
   ggplot2::ylab("Density") + 
@@ -107,9 +112,9 @@ p2 <- ggplot2::ggplot(df_sub, ggplot2::aes(x = duration)) +
   ggplot2::geom_rug(mapping = ggplot2::aes(x = duration), 
                     inherit.aes = FALSE, outside = FALSE, alpha = 0.05, length = ggplot2::unit(4, "pt"), sides = "b") +
   # plot exdf of predictions
-  ggplot2::stat_ecdf(data = duration_rep_sub, mapping = ggplot2::aes(x = duration, group = iter),
+  ggplot2::stat_ecdf(data = duration_rep, mapping = ggplot2::aes(x = duration, group = iter),
                      col = cols_custom$mid_trans, alpha = 0.5) +
-  ggplot2::stat_ecdf(data = duration_rep_sub, mapping = ggplot2::aes(x = duration), 
+  ggplot2::stat_ecdf(data = duration_rep, mapping = ggplot2::aes(x = duration), 
                      col = cols_custom$dark, size = 1) +
   ggplot2::xlab("Fixation duration (sec)") +
   ggplot2::ylab("Cumulative probability") + 
@@ -141,9 +146,6 @@ xy_rep$obs <- gsub("\\]", "", xy_rep$obs)
 xy_rep$obs <- as.integer(xy_rep$obs)
 rm(x_rep, y_rep)
 
-xy_rep_sub <- subset(xy_rep, (iter %% 200) == 0)
-xy_rep_sub <- dplyr::full_join(xy_rep_sub, dplyr::select(df_sub, obs, id_ppt, id_img))
-
 pb <- dplyr::progress_estimated(n = dplyr::n_distinct(df_sub$id_img))
 for(img in unique(df_sub$id_img)){
   image_name <- paste0(image_key$image[image_key$id_img == img], ".jpg")
@@ -170,7 +172,7 @@ for(img in unique(df_sub$id_img)){
     ggplot2::ggtitle("Observed fixations")
   
   # plot predicted fixations
-  pp_3 <- ggplot2::ggplot(subset(xy_rep_sub, id_img == img), ggplot2::aes(x = x, y = y)) +
+  pp_3 <- ggplot2::ggplot(subset(xy_rep, id_img == img), ggplot2::aes(x = x, y = y)) +
     #ggplot2::stat_density_2d(aes(fill = ..density..), geom = "raster", contour = FALSE) +
     #ggplot2::stat_density_2d(aes(fill = ..level..),   geom = "polygon", col = cols_custom$dark) +
     ggplot2::scale_fill_gradient(low = cols_custom$light, high = cols_custom$dark) + 
@@ -265,8 +267,8 @@ amplitude_dat <- plyr::ddply(.data = df_sub, .variables = c("id_ppt", "id_img"),
 })
 
 # calculate amplitudes (distances of predictions for the next fixation from the observed fixation)
-xy_rep_sub <- subset(xy_rep, (iter %% 100) == 0)
-xy_rep_sub <- dplyr::full_join(xy_rep_sub, dplyr::select(df_sub, obs, id_ppt, id_img))
+xy_rep <- subset(xy_rep, (iter %% 100) == 0)
+xy_rep <- dplyr::full_join(xy_rep, dplyr::select(df_sub, obs, id_ppt, id_img))
 
 amplitude_pred <- plyr::ddply(.data = df_sub, .variables = c("id_ppt", "id_img", "obs"), .fun = function(d){
   ppt_d <- d$id_ppt[1]
@@ -275,7 +277,7 @@ amplitude_pred <- plyr::ddply(.data = df_sub, .variables = c("id_ppt", "id_img",
   x_d   <- d$x
   y_d   <- d$y
   
-  pred <- subset(xy_rep_sub, obs == obs_d + 1 & id_ppt == ppt_d & id_img == img_d)
+  pred <- subset(xy_rep, obs == obs_d + 1 & id_ppt == ppt_d & id_img == img_d)
   
   n_row <- nrow(pred)
   if(n_row == 0){
@@ -295,6 +297,6 @@ amplitude_pred <- plyr::ddply(.data = df_sub, .variables = c("id_ppt", "id_img",
 ggplot2::ggplot(amplitude_dat, ggplot2::aes(x = distance)) + ggplot2::geom_histogram() + ggplot2::facet_grid(~id_img)
 
 ggplot2::ggplot(subset(xy_rep, obs == 103), ggplot2::aes(x = x, y = y)) + geom_point(size = 0.1, alpha = 0.1) +
-  geom_point(data = subset(df_sub, obs == 103), ggplot2::aes(x = x, y = y))
+  geom_point(data = subset(df_sub, obs == 102), ggplot2::aes(x = x, y = y))
 
 # Saccade angle check ----
