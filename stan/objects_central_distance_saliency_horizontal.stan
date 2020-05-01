@@ -28,15 +28,31 @@ data{
 }
 transformed data{
   real<lower=-pi(),upper=pi()> angle[N_obs];
+  real<lower=0> dist_to_border[N_obs];
+  vector[2] mu_angle;
+  mu_angle[1] = 0;
+  mu_angle[2] = pi();
   
   for(i in 1:N_obs){
     int current_order = order[i];
+    vector[2] res; // [angle, distance to border]
+    // coordinates of 'previous fixations'
+    real x_prev;
+    real y_prev;
     
     if(current_order == 1){
-      angle[i] = atan2(y[i]-300, x[i]-400);
+    // if it's a first fixation, calculate angle relative to center
+      x_prev = 400;
+      y_prev = 300;
     } else{
-      angle[i] = atan2(y[i]-y[i-1], x[i]-x[i-1]);
+    // otherwise calculate angle relative to the previous fixation  
+      x_prev = x[i-1];
+      y_prev = x[i-1];
     }
+    
+    res = calc_angle_border(x[i], y[i], x_prev, y_prev, 0, 800, 0, 600);
+    angle[i]          = res[1];
+    dist_to_border[i] = res[2];
   }
 }
 parameters{
@@ -103,7 +119,7 @@ transformed parameters{
 
 
     // horizontal bias
-    log_lik_xy[5] += direction_bias_lpdf(angle[i] | rep_vector(1.0/2.0, 2), [0, pi()], rep_vector(kappa, 2));
+    log_lik_xy[5] += direction_bias_lpdf(angle[i] | dist_to_border[i], rep_vector(1.0/2.0, 2), mu_angle, rep_vector(kappa, 2));
     
     log_sum_exp_log_lik_xy += log_sum_exp(log_lik_xy);
     nu = log_sum_exp(log_weights[1:2]) - log_sum_exp(att_filter);
@@ -119,8 +135,8 @@ model{
   sigma_center   ~ gamma(2, 0.02);
   sigma_distance ~ gamma(2, 0.02);
   scale_obj      ~ normal(1, 0.5);
-  kappa          ~ gamma(2, 2);
-  weights        ~ dirichlet(rep_vector(2, 4));
+  kappa          ~ gamma(10, 1);
+  weights        ~ dirichlet(rep_vector(2, 5));
   z_weights_obj  ~ std_normal();
   
   mu_log_alpha              ~ normal(0, 0.5);
