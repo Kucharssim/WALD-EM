@@ -28,6 +28,7 @@ data{
 }
 transformed data{
   real<lower=-pi(),upper=pi()> angle[N_obs];
+  real<lower=0> radius[N_obs];
   real<lower=0> dist_to_border[N_obs];
   vector[2] mu_angle;
   mu_angle[1] = 0;
@@ -35,7 +36,7 @@ transformed data{
   
   for(i in 1:N_obs){
     int current_order = order[i];
-    vector[2] res; // [angle, distance to border]
+    vector[3] res; // [angle, radius, distance to border]
     // coordinates of 'previous fixations'
     real x_prev;
     real y_prev;
@@ -52,7 +53,8 @@ transformed data{
     
     res = calc_angle_border(x[i], y[i], x_prev, y_prev, 0, 800, 0, 600);
     angle[i]          = res[1];
-    dist_to_border[i] = res[2];
+    radius[i]         = res[2];
+    dist_to_border[i] = res[3];
   }
 }
 parameters{
@@ -119,7 +121,7 @@ transformed parameters{
 
 
     // horizontal bias
-    log_lik_xy[5] += direction_bias_lpdf(angle[i] | dist_to_border[i], rep_vector(1.0/2.0, 2), mu_angle, rep_vector(kappa, 2));
+    log_lik_xy[5] += direction_bias_lpdf(angle[i] | radius[i], dist_to_border[i], rep_vector(1.0/2.0, 2), mu_angle, rep_vector(kappa, 2));
     
     log_sum_exp_log_lik_xy += log_sum_exp(log_lik_xy);
     nu = log_sum_exp(log_weights[1:2]) - log_sum_exp(att_filter);

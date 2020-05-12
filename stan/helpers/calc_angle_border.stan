@@ -14,11 +14,10 @@
     vector[2] distances;
     
     vector[2] scale;
-    vector[2] out; //[angle, distance_to_border]
+    vector[3] out; //[angle, radius, distance_to_border]
     
     x_move = x - x_prev;
     y_move = y - y_prev;
-    length = sqrt(square(x_move) + square(y_move));
     
     x_border = x_move > 0 ? x_max : x_min; // border on x coordinate in the direction of the saccade
     y_border = y_move > 0 ? y_max : y_min; // border on y coordinate in the direction of the saccade
@@ -36,6 +35,12 @@
     out[1] = atan2(y_move, x_move);
     
     /*
+    radius: compute the saccade amplitude
+    */
+    length = sqrt(square(x_move) + square(y_move));
+    out[2] = length;
+    
+    /*
     distance:
     if is the outgoing fixation closer to the border on the x-coordinate, 
     we calculate the distance of the fixation to the edge of the display
@@ -45,7 +50,7 @@
     scale[1] = fabs(x_border/x_move) * length;
     scale[2] = fabs(y_border/y_move) * length;
     
-    out[2] = scale[1] < scale[2] ? scale[1] : scale[2];
+    out[3] = scale[1] < scale[2] ? scale[1] : scale[2];
     //out[2] = x_border > y_border ? x_border/fabs(x_move) * length : y_border/fabs(y_move) * length;
     
     return out;
