@@ -42,6 +42,7 @@ ggplot2::ggplot(display, ggplot2::aes(x = x, y = y)) +
 
 ## check that the pdf integrates to 1
 library(pracma)
+library(circular)
 
 integrand <- function(x, y){
   res <- calc_angle_border(x, y, x_prev, y_prev, x_min, x_max, y_min, y_max)
@@ -54,3 +55,13 @@ integrand <- function(x, y){
 
 int <- pracma::integral2(fun = integrand, xmin = x_min, xmax = x_max, ymin = y_min, ymax = y_max, vectorized = FALSE)
 int
+
+integrand <- function(x, y, max_r){
+  r <- x; theta <- y
+  d <- circular::dvonmises(x = theta, mu = pi/2, kappa = 8, log = FALSE)
+  d <- d * dunif(x = r, min = 0, max = max_r, log = FALSE)
+  
+  return(d)
+}
+
+int <- pracma::integral2(fun = integrand, xmin = 0, xmax = 10, ymin = 0, ymax = 2*pi, max_r = 10, vectorized = FALSE)
