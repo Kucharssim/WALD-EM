@@ -3,7 +3,7 @@ library(tidyverse)
 source(here::here("R", "expose_helpers_stan.R"))
 
 
-x_prev <- 400; y_prev <- 300
+x_prev <- 100; y_prev <- 100
 x_min <- 1; x_max <- 800; y_min <- 1; y_max <- 600
 display <- tidyr::expand_grid(x = seq(x_min, x_max, by = 10), y = seq(y_min, y_max, by = 10))
 display$angle           <- NA

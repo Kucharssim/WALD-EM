@@ -48,7 +48,7 @@ transformed data{
     } else{
     // otherwise calculate angle relative to the previous fixation  
       x_prev = x[i-1];
-      y_prev = x[i-1];
+      y_prev = y[i-1];
     }
     
     res = calc_angle_border(x[i], y[i], x_prev, y_prev, 0, 800, 0, 600);

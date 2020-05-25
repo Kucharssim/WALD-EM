@@ -14,13 +14,17 @@
     real dist_x;
     real dist_y;
     real dist;
+    // is the saccade in left direction? Take the right screen boundary, otherwise left
     real x_border = cos(theta) > 0 ? x_max : x_min;
+    // id the saccade in upper direction? Take the upper screen boundary, otherwise bottom
     real y_border = sin(theta) > 0 ? y_max : y_min;
     
-    dist_x = x - x_border;
-    dist_y = y - y_border;
+    // distance to the horizontal and vertical borders, respectively
+    dist_x = (x_border - x) / cos(theta);
+    dist_y = (y_border - y) / sin(theta);
     
-    dist = sqrt(square(dist_x) + square(dist_y));
+    // the smaller distance applies
+    dist = dist_x < dist_y ? dist_x : dist_y;
     
     return dist;
   }  
