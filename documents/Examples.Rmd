@@ -48,6 +48,7 @@ Here, we go through all of the files to document the functionality we added to S
 We implemented the Wald distribution in Stan.
 The first function `wald_lpdf` provides the log of the density function for the Wald distribution. The density of the Wald distribution is the same as the density of the Inverse Gaussian distribution after reparametrization to parameters $\alpha$ (boundary) and $\nu$ (drift rate):
 
+
 ```{r echo=FALSE}
 writeLines(readLines(here::here("stan", "helpers", "wald_lpdf.stan")))
 ```

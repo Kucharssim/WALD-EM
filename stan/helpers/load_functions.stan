@@ -8,3 +8,4 @@
 #include stan/helpers/saliency_rng.stan
 #include stan/helpers/calc_angle_border.stan
 #include stan/helpers/direction_bias_lpdf.stan
+#include stan/helpers/direction_bias_rng.stan
