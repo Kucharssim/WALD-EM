@@ -1,0 +1,463 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[natbibapa]{apacite} % citations
+\usepackage{amsmath} % formatting equations
+\usepackage{amsfonts} % some math symbols
+\usepackage{authblk} % multiple authors
+\usepackage{setspace} % double spacing
+\usepackage[colorinlistoftodos]{todonotes} % todo
+\usepackage{caption}
+\usepackage{xfrac}
+%\captionsetup{figurename = Figure.}
+
+
+\citestyle{apacite}
+\bibliographystyle{apacite}
+
+\begin{document}
+\title{Dynamic model of eye movements in space and time}
+
+\author[1]{Šimon Kucharský}
+\author[2]{Daan van Renswoude}
+\author[1,3]{Maartje Raijmakers}
+\author[1]{Ingmar Visser}
+\affil[1]{University of Amsterdam, Amsterdam}
+\affil[2]{Leiden University, Leiden}
+\affil[3]{Vrije Universiteit, Amsterdam}
+%\author[]{}
+\date{}
+\doublespacing
+\clearpage\maketitle
+\section{Introduction}
+
+As only a relatively small region on the retina provides the highest detail of the visual input, human visual system heavily relies on the ability to control the gaze and movement of the eye over a stimulus. Much of the current research intents to determine the mechanism and factors that guide visual attention through fixations and saccades, i.e., periods of fixing the visual input relatively steady on the retina and periods of abrupt jumps, respectively, as understanding these mechanism provides insights into visual and attentional control and their impact on perception.
+
+
+Based on the previous research, it is worth distinguishing the mechanisms and factors that guide visual attention into three groups \citep{itti2015computational,schutt2017likelihood,tatler2008systematic}. These groups can be roughly described as bottom-up, top-down, and systematic tendencies. The bottom-up factors include features of the visual environment, such as location of objects, distribution of colors and contrast across the visual field, etc. Many of the so called saliency models aim to determine and detect these features \citep{itti2001computational,tatler2011salience,xu2014beyond}. The top-down factors and mechanisms include characteristics and states of the observer, such as their motivation, purpose, task, (background) knowledge or individual differences \citep{de2019individual}. The third group includes factors that are neither purely bottom-up (i.e., not necessarily tied to features in the environment) nor top-down (i.e., not necessarily unique to states or characteristics of observers), but rather experimentally observed phenomena \citep{tatler2008systematic}. Systematic tendencies are believed to be relatively stable across stimuli, participants and tasks, such as fixation biases \citep[e.g., central bias; ][]{renswoude2019central}, saccadic biases \citep[e.g., horizontal bias; ][]{le_meur2015saccadic}, or dependencies between saccade length and fixation durations (ref).
+
+Apart from experimental work establishing individual factors that influence gaze behavior, important aspect of understanding the mechanism behind the observed behavior is proposing theoretical and statistical models that are able to capture, explain, or predict empirical data and observed phenomena. There are many models with varying levels of abstraction, theoretical substance, the phenomena they aim to explain, and the type and level of data it is able to explain \citep{tatler2017latest,trukenbrod2014icat,nuthmann2017fixation_durations,zelinsky2013modelling,schutt2017likelihood,schwetlick2020ccenewalk_extendeds,le_meur2015saccadic,malem2020exploration}. 
+
+\subsection{Model characteristics}
+
+Two prominent questions regarding eye movement behavior requiring explanation is \textit{when} and \textit{where}, i.e., what is the mechanism behind the timing of saccades and fixation durations, and what is the mechanism behind selecting fixation locations. Predominantly, these questions are asked separately by building models explaining either fixation durations or fixation locations (ref). However, better understanding of visual behavior is perhaps only possible when considering both \textit{where} and \textit{when} people look, as Tatler et al. (2017) explain in one of the first attempts to cover both fixation durations and spatial distribution of fixations under one model. In our view, it is indeed of interest to consider spatial and temporal phenomena in one model, as these are likely not independent of each other (refs). In this article, we propose a new account of how to model eye movements both spatially and temporally in one model.
+
+One of critical features of models of any behavior is the ability to generate data, given its set of assumptions. This enables to assess whether the model is successful in generating phenomena that are observed in empirical data, but also makes it possible to make contrafactual investigations, i.e., to answer the question "according to the model, what would have happened if something had occur, but it did not?", useful for hypothesis generation and essentially more precise testing of theories underlying the models \citep{nuthmann2010crisp}.
+
+Building data generative models of eye movements have a long tradition in the eye-tracking literature. In fact, as \citet{schutt2017likelihood} explain, the traditional approach to evaluate eye movement models typically involve simulating eye movement data from a model and compare the synthetic data to experimentally acquired data to demonstrate that the model is describing some phenomena of interest. This is a useful approach to assess the descriptive accuracy of the model and essentially provides some insights about the underlying theory. However, when it comes to comparing different models to each other, relying solely on comparing simulated data to empirical data is difficult, as there is no universal metric or approach for the comparison. Thus, as dynamic models of eye movements gain importance in theoretical and experimental research, parameter estimation and model comparison are also gaining on importance. This requires being able to specify a model as a statistical model (i.e., a probability distribution of the data given a set of parameters) that can be used to estimate the parameters (either using maximum likelihood or Bayesian approaches), and use the statistical machinery for assessing the uncertainty in parameter estimates and to conduct model comparison \citep{schutt2017likelihood,malem2020exploration}, even for very different models.
+
+Related to model comparison, it is important that a model can be modified to include, exclude or modify the functional form of the effect of different factors influencing the eye movement behavior. For example, in studying systematic tendencies, such as existence of a central bias, there is an ongoing debate whether the empirical observation that observers tend to prefer to focus on the center on the screen is caused by the inherent central bias, or by stimuli that are presented, e.g., by having visually, semantically, or emotionally most salient objects in the center of the screen, how to experimentally remove these confounders, and analytically assess these two explanations. Having a possibility to modify the model such that it includes or excludes central bias to conduct a model comparison, enables to assess whether and quantify to what extend different factors come in play in determining the eye movement behavior. 
+
+Furthermore, it is highly likely that although various bottom-up and systematic tendencies apply across all humans, there will be individual differences, differences between different populations, or within-person differences due to development in to what extend different factors affect the eye movement behavior \citep{de2019individual}. Being able to modify the models by including these factors as random factors across participants, stimuli, tasks or populations enables to inspect these differences in one coherent modeling framework.
+
+It is also worthwhile to mention that models that are used to statistically describe phenomena of interest do not necessarily reflect theories that putatively explain these phenomena. This is not a problem with theories nor the models per se, but it can be advantageous if a statistical model is derived from a data generative mechanism that is deemed plausible under a specific theory. Models that are tuned towards a specific application with specific assumption are more tedious to develop and use than classical statistical models applicable to various phenomena, but often offer deeper insights into the underlying mechanisms. In cognitive psychology, such models are sometimes referred to as cognitive process models, as they describe the cognitive processes that underlie the data, and possess parameters that often have clear interpretation.
+
+In this article, we propose a model that explains fixation locations and fixation duration simultaneously, and is 1) generative (i.e., can make predictions about the locations of fixations at a particular time), 2) statistical (i.e., has a proper likelihood function), 3) modifiable (i.e., can be expanded to include different factors, including as random factors), and 4) can be interpreted as a cognitive process model. 
+
+The structure of this article is as follows. In the next section, we introduce the model in conceptual terms, i.e., describe the architecture of the model to highlight the core assumptions which yield the model interpretable as a cognitive process model, while abstracting from particular analytic choices. 
+
+Then, we show how to derive a particular realisation of the model. This will involve laying out concretely what analytic choices we made to make the model tractable. We include case studies on simulated data to show the ability of the model to generate data that show some phenomena observed in real data, and the ability of the model to recover true parameters. Then, we apply this model to real data with examples of answering substantive questions.
+
+Further, as eye movement models can become relatively complex, there is a danger that different research groups may not find a way to fit, use, evaluate, or otherwise work with models already proposed in the literature. We aim to facilitate the understanding and useability of our model by providing online supplemental materials that should guide potentially interested reader through development and use of the currently proposed model.
+
+\section{Conteptual model}
+
+Our model describes eye movement data as $x$ and $y$ coordinates and durations of fixations, and aims to be able to assess the answers to the questions \textit{when} and \textit{where} simultaneously. As such, it consists of two parts: One that corresponds to the question \textit{when}, and one that corresponds to the question \textit{where}. These two parts are then intertwined together to capture potential dependencies between these two.
+
+
+\subsection{Model for \textit{when}}
+
+A typical human in typical situations makes on average one saccade in 200-400 msec. The distribution of fixation durations is characteristically positively skewed, much like typical distributions of response times in decision tasks. There are many possible processes that can explain such a distribution \citep{palmer2011shapes}. 
+
+Our model is heavily inspired by an explanation proposed by \citet{tatler2017latest} in their LATEST model where the fixation durations are conceptualized as time to take a decision (to make a saccade) through evidence accumulation process. This process can be described by various models, such as LATER \citep{carpenter1995neural}, Linear Ballistic Accumulation \citep{brown2008simplest}, or Drift Diffusion \citep{ratcliff2008diffusion}. LATEST model is an extension of LATER model, and conceptualizes evidence accumulation as a linear rise to decision threshold. In LATEST, however, there are many accumulators competing against each other \textit{in parallel} - i.e. the first accumulator that reaches the threshold \textit{wins} and becomes a target for the next fixation. According to the LATEST model, the speed for evidence accumulation is given by sequentially evaluating two hypotheses: one that the goals of the observer will be optimally served by staying at a current location (i.e., decision to \textit{Stay}) and one that the goals of the observer will be optimally served by moving to a new location (i.e., decision to \textit{Go}). The degree of support to one or another is thought of as average speed of the accumulator associated with a particular location.
+
+Similarly to LATEST, we assume that the fixation duration is a result of a decision process. However, in LATEST, fixation duration is the time it took \textit{the first} of possibly many accumulators (running in parallel) to reach a threshold. In contrast, our model assumes that the fixation duration is a result of one process with no parallel components where the observer harvests information from the current location until the goals of the observer would be satisfied better by moving to another location (decision to \textit{Go}).
+
+The evidence accumulation process is conceptualized as a decision to \textit{Stay} vs decision to \textit{Go} similarly to LATEST, but in comparison we assume \textit{only one} decision process instead of many processes running in parallel. This process represents information uptake from a current location up to a point where the currently fixated location does not bring additional information compared to a potential information from other locations. We assume that information uptake is a continuous-time stochastic process that rises to a threshold with some drift and noise level. The time to make the decision to \textit{Go} (i.e., to make a saccade) is the first passage time of this process. A simplest model for such a time is the Wald distribution with three parameters: drift ($\nu$), decision boundary ($\alpha$), and standard deviation of the noise ($\sigma$), one of which needs to be fixed for identifiability purposes. Apart from that the Wald distribution is a reasonable candidate as it reflects the noisy evidence accumulation process (a process that has been deemed as a neurally plausible mechanism for decision processes, ref), it has been also previously shown to fit fixation durations well \citep{palmer2011shapes}.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\linewidth]{figures/wald_distribution.png}
+    \caption{Illustration of the process that results in a Wald distribution. Evidence starts at 0 and accumulates as a Wiener process with a drift $\nu$ (displayed as arrow) until it reaches a threshold $\alpha$. The process is inherently noisy as shown by 500 different traces generated with the same parameters (grey lines). The first passage time (the time it takes to trespass the threshold $\alpha$ for the first time) results in a Wald distribution (displayed on top).}
+    \label{fig:wald_distribution}
+\end{figure}
+
+Other models contain data generating processes. For example, ICAT \citep{trukenbrod2014icat} relies on the concept of autonomous timer, which is thought of as a stochastic discrete state rise to threshold, and as such this part of the model is similar. The difference between the two models (apart from the discreteness) is what the rise to threshold depends on -- as the name suggest, autonomous timer depends on internal processes, a "biological clock", whereas our accumulator depends not only on internal characteristics of the observer, but their surroundings as well.
+
+\subsection{Model for \textit{where}}
+
+After the observed concludes that there is advantage to move to another location, it is time to make a saccade.
+
+Each location of the stimulus provides some amount of attraction to the observer. We call a function that that maps the stimulus coordinates to that attraction an \textit{intensity} function and denote it as: $\lambda: \mathbb{R}^2 \rightarrow \mathbb{R}_+$, and will write it as $\lambda(x, y | s)$, where $s$ stands for the current fixation. The total amount of intensity of the whole stimulus is the integral (sum) of all the points of the stimulus: $\Lambda = \int\int \lambda(x, y | s)~dx dy$. In essence, we assume that when observers decide \textit{where} to go next, they pick a random location from a distribution proportional to this function. The function may or may not depend on the current or previous fixations, depending on whether we assume a homogeneous (static over time) or heterogeneous (evolving over time) process, and can be adjusted depending on the researcher's questions and desires.
+
+In general, we will represent the intensity function as combination of different factors that influence the intensity of different locations. These factors may represent different features and can be combined in different ways. For example, we can build the intensity function such that it combines bottom up features of the stimulus (e.g., saliency) with systematic tendencies (e.g., central bias or horizontal bias), or alternatively include information about locations of objects on the screen, and so forth.
+
+%Modeling unknown functions of this kind can be achieved by various means, see for example Barthelme,~et~al.(2013).
+
+\subsection{Combining model for \textit{when} and \textit{where}}
+
+Human vision is limited by that the most detail available is at a particular part of the retina: fovea, a place where the light falls from roughly around the center of gaze. The physiological aspects of foveal, parafoveal and extrafoveal vision are out of the scope of this article, but similarly to the previous attempts for modeling of eye movements (refs), we are going to represent this by implementing a so called "attentional window" which suppresses intensity of locations relatively farther from the center of gaze. This concept is already included in various models, such as \citep{trukenbrod2014icat, schutt2017likelihood,schwetlick2020ccenewalk_extendeds} as an attention map.
+
+
+In essence, we define an attentional window as a function $a: \mathbb{R}^2 \rightarrow \mathbb{R} \in [0, 1]$, and denote it as $a(x, y | s)$, where $s$ stands for the $x$ and $y$ coordinates of the current fixation. The value of $a$ corresponds to the proportion of the intensity of locations at $(x, y)$ given the current fixation location $s$. To get a representation of the actual intensity of different locations, given a particular fixation location $s$, we can multiply the intensity function by this attentional window: $\omega(x, y | s) = a(x, y | s)\times\lambda(x, y | s)$, and the total amount of accessible intensity during a particular fixation $s$ is $\Omega = \int\int \omega(x, y | s)~dx dy$.
+
+Figures ... illustrate this concept with examples in one dimension.
+
+[Include figures here...]
+
+The concept of attentional window is important in our model as it provides a link between the model for \textit{when} and model for \textit{where} to enable dependencies between the two. As we discussed previously, the time it takes the observer to make a decision can be modelled as a Wald distribution with parameters drift and decision boundary. However, it has been observed that locations with high saliency or cognitive charge are not only fixated more frequently, but the fixation durations are also prolonged on these areas (refs). Further, it has been suggested that processing information that is placed outside of the fovea is more difficult and thus prolongs fixation durations as well \citep{nuthmann2010crisp,nuthmann2017fixation_durations}. 
+
+This can be represented within our model in two ways. First, we can assume that upon arriving to a location $s$, the observer harvests information from around that location with a drift rate $\nu$, and once the information available from that location is depleted, the decision to \textit{Go} is activated. In this framework, $\Omega$ would replace the decision boundary $\alpha$ in the Wald model.
+
+Second, we can adopt the idea from LATEST that the decision to go is based on continual comparison of two hypotheses (\textit{Stay} vs \textit{Go}), where the "evidence" is based on the information provided if one or another decision is adopted. The evidence supporting the decision to Stay is the total amount of intensity accessible through the attention window ($\Omega$), whereas the evidence supporting the decision to Go is the total amount of intensity provided by the stimulus ($\Lambda$). In this framework, the drift rate of the Wald model is replaced by the log of the ratio of the two evidences:
+
+$$\nu = \ln\left(\frac{Go}{Stay}\right) = \ln\left(\frac{\Lambda}{\Omega}\right),$$
+and the evidence accumulation continues until the decision threshold $\alpha$ is reached.
+
+\section{Concrete model}
+
+In the previous section, we tried to describe the model in conceptual terms. However, in order to implement the model, there are several choices to be made in regards how to model the contribution of different factors, including their functional forms. Some of these choices are purely pragmatic and statistical rather than theoretical, and are mostly motivated by the requirement to have a computationally tractable model.
+
+The model can be difficult to implement due to the two-dimensional integrals that are used to obtain the values of $\Lambda$ (total intensity of the stimulus) and $\Omega$ (total intensity available through the attention window). The analytic tractability of these integrals relies on the functional form of the functions $\lambda(x, y)$ and $a(x, y)$, and consequently $\omega(x, y)$. This obstacle can be solved in two ways. 
+
+First, it is possible to divide the stimulus into a grid of discrete locations, leading to an approximation of the continuous space, which leads to tractability regardless of the functional forms (i.e., integrals become sums) at the expense of loosing precision due to the discrete approximation. The degree of precision is arbitrary as it can be increased or decreased by changing the size of the cells in the grid, but could quickly lead to computational bottleneck for fine grained approximations due to the explosion of the number of terms to be summed.
+
+Second, the construction of the functions at play can be carefully selected such that the integrals are analytically tractable. This severely limits the flexibility of the model as it does not allow for very many choices, but avoids the arbitrary choice of the precision to be used when using the discrete approximation approach.
+
+
+\subsection{Modeling $\lambda$}
+
+The model for the function $\lambda$ that converts the coordinates of the stimulus to intensity can be achieved in different ways. We generally desire to include different factors in the model, for example central and directional biases, information about locations of objects on the scene, etc. This can be achieved by the following \citep{barthelme2013spatial}:
+
+\begin{equation}
+    \lambda(x, y) = \Phi \left(\sum \beta_k f_k(x, y) \right),
+\end{equation}
+where $\beta_k$ is a weight of a factor $k$, $f_k$ is a function that maps factor $k$ to the locations $(x, y)$, and $\Phi$ is analogous to a link function in GLMs. Particularly suitable candidates for this function are $\Phi (x) = \exp(x)$, $\Phi (x) = x$, $\Phi (x) = \ln(\exp(x) + 1)$ or their combinations \citep[see ][for the discussion of the differences between them]{barthelme2013spatial}. 
+
+In our application, we use $\Phi$ to be an identity function, which by using appropriate restrictions results in a mixture model:
+
+\begin{equation}
+\label{eq:lambdaMixture}
+    \lambda(x, y) = \sum \pi_k f_k(x, y),
+\end{equation}
+where $\pi_k \in [0, 1]$ and $\sum \pi_k = 1$, $f_k(x, y) \geq 0~\forall x, \forall y$, and $\int \int f_k(x, y) dx dy = 1$. The value of $\pi_k$ then correspond to the relative importance of a factor $k$, and $f_k(x, y)$ corresponds to a distribution of $x$ and $y$ locations under that factor.
+
+Conceptually, such a formulation represents a generative model where the observer chooses the next fixation by first randomly selecting a factor $k$ with probability $\pi_k$ and then selects the location by randomly drawing from the density of the chosen factor $f_k$.
+
+It is questionable whether this assumption is the most realistic -- for example, taking $\Phi = \exp(x)$ corresponds to observer combining all factors into one meshed weighted map which determines the next fixations, an approach taken by \citet{barthelme2013spatial}. We believe that which approach is more realistic can be partly addressed by empirical comparison of different models that differ in these kind of assumptions.
+
+Additionally, it might be important to distinguish between two types of factors: ones that play a role in fixation durations and those that do not. Examples of factors that are plausibly influencing fixation durations are those that provide any proxy to information value of the stimulus - for example, objects on the screen or saliency. Factors that do not influence fixation durations could be those that do not provide information about the stimulus, for example specific spatial or saccadic preferences (central bias, horizontal bias).
+
+
+\subsection{Functional forms}
+
+Given our approach of modelling the $\lambda$ function, it is immediately clear that the value of $\Lambda = 1$ (total intensity of stimulus) for whatever setting of the parameters, due to the restrictions we specified in Equation~\ref{eq:lambdaMixture}. The next step is to determine the value of $\Omega$ -- the total intensity available after filtering through the attention window ($a(x, y |
+s)$). Recall that 
+
+\begin{equation}
+    \Omega = \int \int \omega(x, y) dx dy=  \int \int a(x, y) \lambda(x, y)dx dy.
+\end{equation}
+
+Given the model for $\lambda$ introduced in Equation~\ref{eq:lambdaMixture}, we can rewrite it as
+
+\begin{equation}
+\label{eq:GammaDoubleIntegral}
+    \Omega = \int \int a(x, y) \sum \pi_k f_k(x, y) dx dy = \sum \pi_k \int \int a(x, y) f_k(x, y) dx dy,
+\end{equation}
+from which it is clearly visible that choice of the functional form of the attention window $a(x, y)$ and the individual factors $f_k(x, y)$ determines whether is the model tractable without discretization. One of the possibilities to satisfy this is to model each $f_k(x, y)$ as a bivariate Normal distribution, and $a(x, y)$ as a kernel of a bivariate Normal distribution (i.e., neglecting the normalizing constant). Further, we will assume that the dimensions are uncorrelated, thus $f_k(x, y) = f_k(x)f_k(y)$ and $a(x, y) = a(x)a(y)$, where $f_k(.)$ is a Normal distribution with parameters $\mu_k$ and $\sigma_k$ for the appropriate dimensions, and $a(.)$ is similarly the gaussian kernel with center at the current fixation ($s$) and scale parameter $\sigma_a$ in the appropriate dimension. This allows us to rewrite the double integral in Equation~\ref{eq:GammaDoubleIntegral} into a product of two integrals:
+
+\begin{equation}
+    \Omega =  \sum \pi_k \int a(x)f_k(x) dx \int a(y)f_k(y) dy, 
+\end{equation}
+which has a simple analytic solution:
+
+\begin{equation}
+\begin{aligned}
+\int a(x)f_k(x) dx = & \int \frac{1}{\sqrt{2\pi\sigma_k^2}} \exp\left[-\frac{(x-\mu_k)^2}{2\sigma_k^2}\right] \exp\left[-\frac{(x-s_x)^2}{2\sigma_a^2}\right]~dx = \\
+= & \frac{1}{\sqrt{2\pi\sigma_k^2}} \int \exp\left[-\frac{(x-\mu_k)^2}{2\sigma_k^2} - \frac{(x-s_x)^2}{2\sigma_a^2}\right]~dx = \\
+= & \frac{1}{\sqrt{2\pi\sigma_k^2}} \int \exp\left[-\frac{\sigma_a^2(x-\mu_k)^2 + \sigma_k^2(x-s_x)^2}{2\sigma_a^2\sigma_k^2} \right]~dx = \\
+= & \frac{1}{\sqrt{2\pi\sigma_k^2}} \int \exp\left[-\frac{(\sigma_a^2+\sigma_k^2)\left(x-\frac{\sigma_a^2\mu_k + \sigma_k^2s_x}{\sigma_a^2+\sigma_k^2}\right)^2 + \frac{\sigma_a^2\sigma_k^2}{\sigma_a^2 + \sigma_k^2}(\mu_k-s_x)^2}{2\sigma_a^2\sigma_k^2} \right]~dx = \\
+= & \frac{1}{\sqrt{2\pi\sigma_k^2}} \exp\left[-\frac{(\mu_k-s_x)^2}{2(\sigma_a^2 + \sigma_k^2)}\right] \int \exp\left[-\frac{(\sigma_a^2+\sigma_k^2)\left(x-\frac{\sigma_a^2\mu_k + \sigma_k^2s_x}{\sigma_a^2+\sigma_k^2}\right)^2}{2\sigma_a^2\sigma_k^2} \right]~dx = \\
+= & \frac{1}{\sqrt{2\pi\sigma_k^2}} \exp\left[-\frac{(\mu_k-s_x)^2}{2(\sigma_a^2 + \sigma_k^2)}\right] \sqrt{2\pi} \sqrt{\frac{\sigma_a^2\sigma_k^2}{\sigma_a^2+\sigma_k^2}} = \\
+= & \frac{\sigma_a}{\sqrt{\sigma_a^2+\sigma_k^2}} \exp\left[-\frac{(\mu_k-s_x)^2}{2(\sigma_a^2 + \sigma_k^2)}\right],
+\end{aligned}
+\end{equation}
+and equivalently in the $y$ dimension.
+
+Finally, we use the parametrization where the drift rate $\nu$ varies with the location of the fixation. Combining the previous two Equations, we can write the drift rate as following
+
+\begin{equation}
+\label{eq:nuAsLogOmega}
+\begin{aligned}
+\nu | s, \sigma_a, \lambda & = \ln(\Lambda) - \ln(\Omega) = - \ln(\Omega) \\
+& = - \ln \sum_{k=1}^K \exp \Bigg[\ln \pi_k + \sum_{i=1}^2 \Big( \ln \sigma_{ai} - \frac{\ln (\sigma_{ai}^2+ \sigma_{ki}^2)}{2} - \frac{(\mu_{ki} - s_i)^2}{2(\sigma_{ai}^2 + \sigma_{ki}^2)} \Big)  \Bigg],
+\end{aligned}
+\end{equation}
+where the iteration over $i$ only makes explicit the integration over $x$ and $y$ dimensions. The above expression was purposely written in the log-sum-exp-log form explicitly to bring it in line with its computational implementation (which is more stable in this form). 
+
+\subsection{Likelihood}
+
+
+Assuming data in the form of $d \in \mathbb{R}_+^T$ as the durations and $s = (s_x, s_y) \in \mathbb{R}^{T\times2}$ as the $x$ and $y$ coordinates of $T$ observed fixations, likelihood of the model can be written as:
+
+\begin{equation}
+    \mathcal{L}(\theta | d, s) = \prod_{t=1}^T \lambda^{(t)}(s_x^{(t)}, s_y^{(t)} | \pi, \mu, \sigma) \times f_{W}(d^{(t)} | \nu^{(t)}, \alpha),
+\end{equation}
+where superscript for $\lambda$ means that the intensity function might change during the course of time (which we show later), and $\nu^{(t)}$ changes depending on the current location through Equation~\ref{eq:nuAsLogOmega}. $f_W$ stands for the p.d.f. of the Wald distribution.
+
+In general, assuming $K$ factors included in the model, the model can have $K$ parameters $\pi_1, ..., \pi_K$, $2\times K$ parameters $\mu_1, ..., \mu_K$ (each a vector of 2 for $x$ and $y$ direction), $2\times K$ parameters $\sigma_1, ..., \sigma_K$ (each a vector of 2 for $x$ and $y$ direction), 2 parameters for $\sigma_a$ (width of the attention window in $x$ and $y$ direction), and $\alpha$, totalling $5K + 3 - 1$ free parameters. Depending on the actual factors included in the model, we will be able to fix or equate some parameters to reduce the number of parameters to be estimated, although it is not necessary to do so.
+
+% \section{Case Studies}
+
+% The model described above is very general and can take a variety of specifications. Building a model to answer a specific question can thus take a bit of time and thought. 
+
+% Here, we show how to build such a model from scratch, i.e., how to think about including different factors in the model. Specifically, in three steps, we will build a model that includes two systematic tendencies (central bias and direction bias), and one top-down factor (positions and sizes of objects on the screen).
+
+% The purpose of this section is to initiate the reader into building a model based on our proposal, show that the model is able to recover parameters from simulations, and how to assess the adequacy of the model. The section is accompanied with an online supplemental material (url) that shows, step by step, the implementation of the model in a statistical modelling language Stan (Carpenter, et al., xxx). We believe that such an approach will help potential user of our model to change the model specification according to their research question and application, while holding oneself to the highest possible standards of robust cognitive modeling (Lee et al, 2019; Shad, Bentacour, \& Vasishth, 2019; Bentacour, 2018).
+
+
+
+
+% \subsection{Central bias}
+
+% Central bias is one of the empirically observed systematic tendencies that bias the distribution of fixations towards the center of the screen (Tatler, et al.). 
+
+% We start with building the model including only central bias. Including only one factor in the model is very easy and unrealistic, but it allows to demonstrate the core basic of the model clearly.
+
+% Given that we have only one factor, the summation over all factors in Equations~\ref{eq:lambdaMixture} and \ref{eq:nuAsLogOmega} drop out, as well as parameter $\pi$ which is by definition (Equation~\ref{eq:lambdaMixture}) equal to one. Further, by definition, central bias draws the fixations towards the center of the screen, and so the parameters in $\mu$ can be fixed to the coordinates of the center of the screen. 
+
+
+% This leaves us with three parameters to estimate: $\alpha$ (the threshold in the Wald model), $\sigma_a$ (the width of the attention window), and $\sigma$ (the scale of the central bias). %We use weakly informative priors for these parameters: $\text{gamma}(\alpha = 2, \beta = 0.02)$ for $\sigma_a$ and $\sigma$, which draws the parameters a little bit away from zero, and places $91\%$ of the prior in the interval between 0 and 200 pixels, and has a long tail covering even larger values (the mode is about 50 and mean is 100). For $\alpha$, we use also weakly informative prior: Normal distribution truncated at 0 with mean parameter $1$ and standard deviation of 2.
+
+% Due to the very simple nature of this model, many computations can be simplified and the resulting model can be written as follows:
+
+% \begin{equation}
+% \label{eq:CaseStudy_CentralBias}
+% \begin{aligned}
+%   s_x     & \sim \text{Normal}(\bar{x}, \sigma) \\
+%   s_y     & \sim \text{Normal}(\bar{y}, \sigma) \\
+%   d^{(t)} & \sim \text{Wald}(\nu^{(t)}, \alpha) \\
+%   \nu^{(t)} & = - 2 \ln \sigma_a + \ln (\sigma_a^2 + \sigma^2) + \frac{\left(\bar{x} - s_x^{(t)}\right)^2 + \left(\bar{y} - s_y^{(t)}\right)^2}{2(\sigma_a^2 + \sigma^2)} \\
+%   \sigma_a & \sim \text{Gamma}(., .) \\
+%   \sigma   & \sim \text{Gamma}(., .) \\
+%   \alpha   & \sim \text{Normal}(., .)_{[0, \infty]}
+% \end{aligned}
+% \end{equation}
+
+% \subsection{Central bias + horizontal and vertical bias}
+
+
+% \subsection{Central bias + horizontal and vertical bias + object oriented behavior}
+
+\subsection{Including saliency}
+
+An important branch of models that describe and predict distribution of fixation locations are saliency models. We define a classic saliency model an algorithm that takes the image (stimulus) as an input, and which produces an output, usually by assigning each pixel a value representing the local saliency of that pixel. Common features that these models consider important are local-global contrasts in color, intensity, and edges.
+
+Saliency models enjoy a lot of success in predicting eye movement behavior and thus it seems reasonable to include some form of a saliency map as one of the factors in our model. Unfortunately, given the nature of the output of saliency models, it is not possible to implement the model fully analytically, and we will instead resort to discretization.
+
+Let's define a saliency map as $\mathbf{S}$, where each of its element assigns a saliency to a pixel. Having $I$ pixels in one dimension and $J$ pixels in the other dimension, we have a total number of $P = I \times J$ pixels. We can standardize the output of a saliency algorithm to ensure that $\sum_{p=1}^{P} \mathbf{s}_{p}~=~1$.
+
+To include saliency into the model for \textit{where}, we obtain a representation of the saliency on a continuous space of the $x$ and $y$ coordinates by defining the intensity function of saliency as a two dimensional step function: 
+
+\begin{equation}
+\label{eq:saliency_where}
+    f(x, y) = \frac{\mathbf{s}_{p(x,y)} }{h \times w},
+\end{equation}
+where $p(x, y)$ returns the index of a pixel which is a super set of the position $x$ and $y$, and where $h$ and $w$ is the height and width of the pixel. Standardization by the area of the pixel ensures that after converting the saliency map $\mathbf{S}$ to the intensity function, the volume $\int \int f(x, y)~dxdy$ amounts to 1.
+
+To include saliency into the model for \textit{when}, we need to adopt additional simplifications as to evaluate the integral $\int \int a(x, y) \times f(x, y)~dxdy$. We define $x_p$ and $y_p$ as the $x$ and $y$ coordinates of the center of a pixel $p$, respectively, and approximate $f(x, y)$ as:
+
+\begin{equation}
+    f(x, y) \approx \sum_{p=1}^P \mathbf{s}_{p} \text{Normal}(x | x_p, \kappa)\text{Normal}(y | y_p, \kappa),
+\end{equation}
+which leads to (using results in Equation~\ref{eq:GammaDoubleIntegral}):
+
+\begin{equation}
+    \int \int a(x, y)f(x, y)~dx dy\approx \sum_{p=1}^P \mathbf{s}_{p} \frac{\sigma_a^2}{\sigma_a^2 + \kappa } \exp\left(-\frac{(x_p - s_x)^2+(y_p - s_y)^2}{2(\sigma_a^2 + \kappa)}\right),
+\end{equation}
+which we can further simplify by letting $\kappa \rightarrow 0$:
+
+\begin{equation}
+    \int \int a(x, y)f(x, y) \approx \sum_{p=1}^P \mathbf{s}_{p} \exp\left(-\frac{(x_p - s_x)^2+(y_p - s_y)^2}{2\sigma_a^2}\right).
+\end{equation}
+
+These steps enable us to approximately compute the drift rate by substituting the discrete saliency map with a continuous function.
+
+However, this implementation still requires serious computational resources: for example, fitting a model that includes a saliency map of resolution of $800\times600$ pixels would mean summing up $P = 800\times600 = 480,000$ terms for every fixation in every iteration of the fitting procedure.
+
+There are generally 3 ways to alleviate the problem of the computational complexity. First, it is possible not to include the discrete factor in the model for \textit{when}, but only include it into the factor for \textit{where}. However, leaving it out does not solve the problem, but rather avoids it altogether. Second, it is possible to downsample the output of the saliency map. Indeed, many saliency algorithms already output the saliency map that has a resolution smaller than the original image \citep[e.g., by a factor of $16$ in each of the dimensions,][] {itti1998model}. Having an input image of dimensions of $800\times600$ pixels then leads to quite substantial reduction: Instead of summing up 480,000 terms we need to sum up only about 2,000. Downsampling the saliency maps to have smaller resolution than the input image is also desirable from a measurement perspective as the eye-tracking devices likely have measurement error that translate to several pixels of the input image.  Downsampled saliency maps then correspond better to the level of precision of the data. Third, it is possible to limit the summation only for the terms that lie in a relative proximity from the current fixation. For example, the attention window lets through only at most $1.1\%$ of the total weights of the pixels that lie at a distance of $3\sigma_a$ or more, essentially meaning that many of the terms in the sum are basically zero. Leaving out the pixels that are that far from the current fixation can reduce the number of terms to be summed by a great amount while not sacrificing much of the computational accuracy.
+
+
+
+\section{Application}
+
+Here, we apply a particular realization of the model to data by \citet{renswoude2019object_familiarity} to demonstrate its use in applied context.
+
+In this application, we are interested in the extend to which four different factors influence the distribution of fixation locations and the timing of saccades. 
+
+The four factors that we considered are the 1) locations (and sizes) of objects on the scene \citep{xu2014beyond,renswoude2019object_familiarity}, 2) saliency \citep{itti1998model,itti2000saliency,itti2001computational}, 3) exploitation \citep[i.e., tendency to make repeated fixations in a relative proximity to previous fixation;][]{malem2020exploration}, and 4) central bias \citep{renswoude2019central}. 
+
+As an inherent product of the model, we will also obtain assessment of the individual differences between the participants in terms of their tendency to dwell longer on current locations (captured by the decision boundary), and the width of their attention window.
+
+\subsection{Data Descriptives}
+
+The data contains recordings of 47 participants looking at 29 static pictures selected from the pool of 700 images created by \citet{xu2014beyond}. 39 participants looked at all 29 stimuli (min = 5, mean = 27.6, median = 29, max = 29 viewed images per participant). The mean number of fixations per trial was 11.4 (sd = 4.3); the total number of fixations in the data set is 14,807.
+
+We split the data set in two parts, one of which we used to estimate the parameters of a model (number of fixations = 7,207), and one of which we used to validate the predictions of the model. We counter balanced the number of trials per participant in the two sets to ensure that both data sets contain some data from all participants and all items.  
+
+\subsection{Initial Model}
+
+The model contains four factors that determine the fixation locations, and two additional factors that determine the saccade timing.
+
+Model for where is composed of four factors, and so we can describe the distribution of fixation locations as follows:
+
+\begin{equation}
+    (x, y) \sim \sum_{k=1}^4 \pi_k f_k(x, y | \theta_k),
+\end{equation}
+where $\pi_k$ are the weights of different factors and $f_k$ is the distribution of a factor $k$ with parameters $\theta_k$.
+
+The first factor is the location and sizes of objects on the scene. We assume that each object on the scene can have different level of attractivity and that larger objects distribute their total attractivity over larger area. This idea can be expressed by another mixture:
+
+\begin{equation}
+    f_1(x, y | \theta_1) = \sum_j \omega_j \text{Normal}(x | \text{center}_{xj}, \gamma \times \text{width}_{j}) \text{Normal}(y | \text{center}_{yj}, \gamma \times\text{height}_{j}), 
+\end{equation}
+where $\omega_j$ are the individual attractivities of different objects on a particular image, and that $\gamma$ is a scaling factor that stretches or compresses the attractivity of objects proportionally to their sizes.
+
+The second factor is the saliency, which we treated as described in \ref{eq:saliency_where}.
+
+The third factor can be described as an exploitation factor, and captures the phenomenon that people tend to linger close to the current fixation location: we model it as a bi variate normal distribution centered at the fixation location at time $t$ to predict the fixation location at time $t+1$:
+
+\begin{equation}
+    f_3(x, y|\theta_3) = \text{Normal}(x | s_x^t, \sigma_e) \text{Normal}(y | s_y^t, \sigma_e)
+\end{equation}
+
+The fourth factor represents the central bias, and is modelled as a bi variate normal distribution centered at the center of the screen ($x_c = 400$, $y_c = 300$)
+
+\begin{equation}
+    f_4(x, y|\theta_4) = \text{Normal}(x | 400, \sigma_d) \text{Normal}(y | 300, \sigma_d)
+\end{equation}
+
+For the fixation durations, we only consider the first two factors influential: the latter two factors do not stand for \textit{information} presented on the screen, but rather spatial biases, and therefore should not have any influence on saccade timing.
+
+The model for fixation duration can be summarised as following.
+\begin{gather*}
+    d \sim \text{Wald}(\nu, \alpha) \\
+    \nu = \ln(\pi_1 + \pi_2) - \ln\left(\int\int a(x, y | \sigma_a) \left(\pi_1 f_1(x, y | \theta_1) + \pi_2 f_2(x, y | \theta_2)\right)dxdy\right)
+\end{gather*}
+
+
+We wrote the model using the probabilistic programming language Stan \citep{carpenter2017stan} interfacing with R \citep{citeR} using the package \texttt{rstan} \citep{team2020rstan}.
+
+\subsection{Results - Initial model}
+
+We run 10 MCMC chains with random starting values and default tuning parameters set by Stan. Each chain run for 1,000 warm up and 1,000 sampling iterations, resulting in a total of 10,000 samples used for inference.
+The model run without any divergent transitions. We examined the potential scale reduction factor $\hat{\text{R}}$, trace plots, auto correlations, and the number of effective samples to identify potential problems with convergence. We did not find indications of poor convergence, and thus proceed with interpreting the model.
+
+
+\textit{Posterior predictive checks.} We generated posterior predictives for the data set used for estimating the parameters to assess whether the fitted model reproduces the observed patterns in the data.
+
+The model is able to capture the characteristic distribution of the fixation durations, as documented in Figure~\ref{fig:predictives_in_sample_durations}, although the model predicts a slightly fatter right tail than that of the data.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{figures/fit_model/predictives/in_sample/fixation_durations.jpg}
+    \caption{Predicted (red) versus observed (green) distribution of the fixation durations. Left panel shows histogram of the empirical data versus the density estimate using gaussian kernel of the posterior predictives. Right panel shows empirical cumulative distribution functions.}
+    \label{fig:predictives_in_sample_durations}
+\end{figure}
+
+The model also reproduces the distributions of fixation locations.  Figure~\ref{fig:predictives_in_sample_xy} shows an example for one particular stimulus \citep[image number $251$ from][]{xu2014beyond}. The top-right in Figure~\ref{fig:predictives_in_sample_xy} displays the four factors included in the model, which combine proportionally to their weights to the posterior predictive distribution (labeled as predicted fixations).
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{figures/fit_model/predictives/in_sample/xy/1251.jpg}
+    \caption{Original stimulus created by \citet{xu2014beyond}.}
+    \label{fig:predictives_in_sample_xy}
+\end{figure}
+
+Next to the variables used to fit the data (fixation durations and fixation locations), we also checked at other quantities implied by the model. Specifically, we checked whether we can reproduce the distribution of saccade amplitude and the distribution of saccade angle.  Saccade amplitude was measured as the Euclidean distance between two successive fixations in units of pixels. Saccade angle was calculated as an angle in radians between the horizontal axis of the screen and the vector that connects two successive fixations.
+
+Figure~\ref{fig:predictives_in_sample_amplitude} shows the observed versus predicted distributions of saccade amplitudes on one example stimulus (shown in Figure~\ref{fig:predictives_in_sample_xy}). The model usually captures the distribution of saccade amplitudes relatively well, exhibiting two modes. Figure~\ref{fig:predictives_in_sample_amplitude} shows the observed versus predicted distributions of saccade amplitudes on the same stimulus. The prediction of saccade angles is relatively good on single stimuli, as usually the model predicts similar patterns of saccade directions (for example, Figure~\ref{fig:predictives_in_sample_angle} shows that the model captures saccade directions in the top-right and bottom-left directions). However, overall the model does not capture well an excess of saccades in the horizontal direction, which could be an indication that the model needs to be expanded with a factor that represents a horizontal bias \citep{renswoude2016horizontal}.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{figures/fit_model/predictives/in_sample/amplitude/1251.jpg}
+    \caption{Observed (blue) versus predicted (red) saccade amplitude on one particular stimulus (see Figure~\ref{fig:predictives_in_sample_xy}).}
+    \label{fig:predictives_in_sample_amplitude}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.4\textwidth]{figures/fit_model/predictives/in_sample/angle/1251.jpg}
+    \caption{Observed (blue) versus predicted (red) saccade angle on one particular stimulus (see Figure~\ref{fig:predictives_in_sample_xy})}
+    \label{fig:predictives_in_sample_angle}
+\end{figure}
+
+\textit{Parameter estimates}
+The results indicated that the most important factor driving fixations was the locations of objects on the scene (weight = $0.37$, $95\%$ CI[$0.35$, $0.40$], followed by exploitation (weight = $0.30$, $95\%$ CI[$0.28$, $0.31$]), saliency (weight = $0.18$, $95\%$ CI[$0.16$, $0.20$]), and central bias (weight = $0.16$, $95\%$ CI[$0.14$, $0.17$]).
+
+The parameter that controls sizes of objects as identified by \citet{xu2014beyond} indicated that people fixate relatively close to the centroids of the objects (scale = $0.23$, $95\%$ CI[$0.16$, $0.20$]). The exploitation region had a standard deviation $\sigma = 34.58$ ($95\%$ CI[$33.15$, $36.06$]) pixels, whereas the central bias region had a standard deviation $\sigma = 93.84$ ($95\%$ CI[$88.65$, $98.91$]) pixels.
+
+\subsection{Extended model}
+
+The original model fared well capturing the distribution of fixation durations and the overall distribution of fixation locations, but failed to reproduce patterns in saccadic orientation. Particularly noteworthy misfit of the original four factor model is that the model fails to capture the amount of saccades going in a horizontal direction.
+
+To explore whether we can accommodate this type of misfit, we extended the model. Specifically, we added another factor into the model for fixation locations, representing the horizontal bias. To create a factor that represents a saccadic bias (such as horizontal bias), instead of location preferences, it is possible to transform fixation locations (x and y coordinates) into a saccade representation (angle $\theta$ and amplitude $r$ of a saccade):
+\begin{equation}
+    \begin{aligned}
+      \theta & = \text{arctan}\left(\frac{\Delta y}{\Delta x}\right) \\
+      r & = \sqrt{\Delta x^2 + \Delta y^2},
+    \end{aligned}
+\end{equation}
+where $\Delta x = x^t - x^{t-1}$ and $\Delta y = y^t - y^{t-1}$ represent a fixation as the difference of the x and y coordinates compared to the previous fixations (we set $x^0 = 400$ and $y^0 = 300$ as that is the middle of the screen).
+
+That way, we can substitute a factor of locations with a factor of saccade angles and amplitudes:
+
+\begin{equation}
+    f(x, y) = \frac{f(\theta, r)}{r},
+\end{equation}
+where the denominator $r$ is the Jacobian determinant representing the stretching of the space after the change of variables from cartesian to polar coordinates: $dx dy = r dr d\theta$. 
+
+To create the joint density of the angle and amplitude, we express it using the chain rule of probability:
+
+\begin{equation}
+    f(\theta, r) = f(\theta) \times f(r | \theta).
+\end{equation}
+
+The important part of this factor is the distribution of saccade angles, for which we specify the following distribution:
+
+\begin{equation}
+    f(\theta) = 0.5 \text{vonMises}(0, \kappa) + 0.5 \text{vonMises}(\pi, \kappa),
+\end{equation}
+
+which specifies a mixture of von Mises distributions with centers fixed to 0 and $\pi$ (i.e., right and left direction, respectively), and a concentration $\kappa$ which is estimated from the data. The mixture weights are fixed to $0.5$ as we assume that saccades in the left direction are equally attractive as saccades to the right direction.
+
+The conditional density $f(r | \theta)$ is chosen to be a uniform stretched over the interval between 0 and the maximum saccade lenght that would not fall outside of the screen if it was launched from the position $(x^{t-1}, y^{t-1})$ under the direction $\theta$.
+
+The generative mechanism for such a joint density is the following. First, observed draws a saccade angle from the distribution $f(\theta)$. Then, the observer draws a point along a line under the sampled angle $\theta$, that goes between location $(x^{t-1}, y^{t-1})$ and the edge of the screen. This point is the new fixation position.
+
+Figure~\ref{fig:horizontal_example} shows and example of the function $f(\theta, r)$ on the screen coordinates, with $(x^{t-1}, y^{t-1})$ set to the center to the screen, and $\kappa = 15$.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\linewidth]{figures/horizontal_example.jpg}
+    \caption{Example of the joint density of saccade angle and saccade amplitude plotted on the screen dimensions. The density highlights saccades in the left and right directions relative to the current fixation (in this figure, the center of the screen), representing the horizontal bias.}
+    \label{fig:horizontal_example}
+\end{figure}
+
+The rest of the model stayed the same.
+
+\subsection{Results - Extended model}
+
+We fitted the extended model in the same way as the initial model: We run 10 MCMC chains with random starting values and default tuning parameters set by Stan. Each chain run for 1,000 warm up and 1,000 sampling iterations, resulting in a total of 10,000 samples used for inference. The model run withouth any divergent transitions. We examined the convergence diagnostics, to find that we could not identify potential problems with convergence. Thus, we proceed with interpreting the model.
+
+\textit{Posterior predictive checks.} We conducted posterior predictive checks the same way as with the previous model: Comparing the predicted and observed distribution of fixation durations, fixation locations, saccade amplitudes, and saccade angles. The extended model performed similarly to the initial model in terms of the first three variables. As Figure~\ref{fig:horizontal_comparison} demonstrates, the extended model did better in terms of reproducing the overall distribution of saccade angles - being able to reproduce the excess of saccades going in the horizontal direction better after we have explicitly added a factor that represents horizontal bias.
+
+\textit{Model comparison.} To assess whether the extended model did better at predicting the data compared to the initial model, we computed the log-likelihood of the hold-out set under the two models, given the posterior distributions of the parameters. This way, we obtained a distributions of the log-likelihood for the two models. To compare the two distributions, we computed the distribution of the log-likelihood differences: $\Delta \log \mathcal{L} = \log \mathcal{L}(\text{Model 2}) - \log \mathcal{L}(\text{Model 1})$: Positive values mean that the extended model predicted the hold-out data better than the initial model, and negative values mean that the initial model predicted the hold-out data better than the initial model.
+
+The log-likelihood difference distribution indicated that the extended model was better at predicting the hold-out data than the intitial model: adding horizontal bias into the model increased the model's predictive success (median=$45.77$, $\text{IQR}[15.18, 77.06]$): adding horizontal bias into the model increased the model's predictive success.
+
+\section{Conclusion and discussion}
+
+
+\bibliography{bibliography}
+
+\end{document}
