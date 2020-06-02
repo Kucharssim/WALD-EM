@@ -1,0 +1,61 @@
+---
+title: "Direction bias and Central bias"
+author: "Simon Kucharsky"
+date: "`r Sys.Date()`"
+output: 
+  rmarkdown::github_document:
+    pandoc_args: --webtex
+bibliography: "`r here::here('bibliography.bib')`"
+csl: "`r here::here('apa.csl')`"
+---
+
+
+
+
+```{r}
+library(rstan)
+source(here::here("R", "expose_helpers_stan.R"))
+```
+
+
+
+## Fitting a direction bias
+
+
+```{r}
+dir_weigths <- c(0.5, 0.5)
+dir_mu      <- c(0, pi)
+dir_kappa   <- c(8, 8)
+
+cen_sigma   <- c(100, 100)
+mix_weights <- c(0.4, 0.6)
+
+xy <- matrix(NA, nrow = 500, ncol = 2)
+for(i in 1:nrow(xy)){
+  k <- sample(1:2, 1, TRUE, mix_weights)
+  
+  if(k == 1){
+    x <- ifelse(i == 1, 400, xy[i-1, 1])
+    y <- ifelse(i == 1, 300, xy[i-1, 2])
+    xy[i,] <- direction_bias_rng(c(0.5, 0.5), c(0, pi), c(8, 8), x, y, 0, 800, 0, 600)
+  } else {
+    xy[i,1] <- trunc_normal_rng(400, cen_sigma[1], 0, 800)
+    xy[i,2] <- trunc_normal_rng(300, cen_sigma[2], 0, 600)
+  }
+}
+
+plot(xy, pch = 19, xlab = "x", ylab = "y")
+lines(xy)
+```
+
+```{r}
+stan_model <- rstan::stan_model(here::here("stan", "examples", "direction_central_bias_single.stan"), isystem = here::here())
+
+stan_data  <- list(N_obs = nrow(xy), x = xy[,1], y = xy[,2])
+
+stan_fit   <- rstan::sampling(stan_model, stan_data, chains = 4, cores = 4, warmup = 500, iter = 1000, refresh = 250)
+
+print(stan_fit)
+```
+
+

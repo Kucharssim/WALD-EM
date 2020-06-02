@@ -1,0 +1,93 @@
+---
+title: "Direction bias"
+author: "Simon Kucharsky"
+date: "`r Sys.Date()`"
+output: 
+  rmarkdown::github_document:
+    pandoc_args: --webtex
+bibliography: "`r here::here('bibliography.bib')`"
+csl: "`r here::here('apa.csl')`"
+---
+
+This file validates the implementation of the direction bias (see `stan/helpers/direction_bias_lpdf.stan`).
+
+```{r}
+library(rstan)
+source(here::here("R", "expose_helpers_stan.R"))
+```
+
+## Fitting a mixture of von Mises distributions 
+
+The following checks that the density function of the von Mises mixture is implemented correctly. Here, we simulate data from two mixture components with means fixed to 0 and $\pi$, equal concentrations $\kappa = 8$, and equal mixture weights.
+
+```{r}
+mvonmises <- function(x, weights, mu, kappa){
+  lpdf <- sapply(x, function(a) mixture_von_mises_lpdf(a, weights, mu, kappa))
+  
+  exp(lpdf)
+}
+
+theta <- vector(length = 200)
+for(i in 1:200) theta[i] <- mixture_von_mises_rng(c(0.5, 0.5), c(0, pi), c(8, 8))
+hist(theta, breaks = seq(-pi, pi, length.out = 50), freq = FALSE, main = "von Mises mixture")
+curve(mvonmises(x = x, weights = c(0.5, 0.5), mu = c(0, pi), kappa = c(8, 8)), from = -pi, to = pi, add = TRUE)
+```
+
+Below we fit the model to see whether we recover the parameter $\kappa$:
+```{r echo=TRUE}
+stan_model <- rstan::stan_model(here::here("stan", "examples", "mixture_von_mises_single.stan"), isystem = here::here())
+
+stan_data  <- list(N_obs = length(theta), angle = theta, mu_angle = c(0, pi))
+
+stan_fit   <- rstan::sampling(stan_model, stan_data, chains = 4, cores = 4, warmup = 500, iter = 1000, refresh = 0)
+
+stan_fit
+```
+
+Which (as it seems) we do.
+
+## Fitting a direction bias
+
+First, we will simulate single data following this initial setup:
+
+1) The screen has dimensions `800` pixels in horizontal direction and `600` pixels in vertical direction.
+
+2) The first fixation is not random and fixed to the center of the screen (`x = 400`, `y = 300`)
+
+And the following data generative meachanism of each successive fixation:
+
+1) We draw an angle between 0 and $2\pi$ from a specified mixture of von Mises distributions.
+
+2) Draw a line going through the current fixation under the angle drawn in 1).
+
+3) Calculate the distance between the current fixation and the border of the screen (along the drawn line).
+
+4) Draw a random number according to Uniform distribution between 0 and the number calculated in 3).
+
+5) The angle drawn in 1) and the number drawn in 4) together specify the saccade, which determine the displacement ofo the current fixation to the previous fixation.
+
+```{r}
+xy <- matrix(NA, nrow = 200, ncol = 2)
+
+
+for(i in 1:nrow(xy)){
+  x <- ifelse(i == 1, 400, xy[i-1, 1])
+  y <- ifelse(i == 1, 300, xy[i-1, 2])
+  xy[i,] <- direction_bias_rng(c(0.5, 0.5), c(0, pi), c(8, 8), x, y, 0, 800, 0, 600)
+}
+
+plot(xy, pch = 19, xlab = "x", ylab = "y")
+lines(xy)
+```
+
+```{r}
+stan_model <- rstan::stan_model(here::here("stan", "examples", "direction_bias_single.stan"), isystem = here::here())
+
+stan_data  <- list(N_obs = nrow(xy), x = xy[,1], y = xy[,2])
+
+stan_fit   <- rstan::sampling(stan_model, stan_data, chains = 4, cores = 4, warmup = 500, iter = 1000, refresh = 250)
+
+print(stan_fit)
+```
+
+
