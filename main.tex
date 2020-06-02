@@ -359,7 +359,7 @@ The model is able to capture the characteristic distribution of the fixation dur
 
 \begin{figure}
     \centering
-    \includegraphics[width=\textwidth]{figures/fit_model/predictives/in_sample/fixation_durations.jpg}
+    \includegraphics[width=\textwidth]{figures/fit_model/in_sample/fixation_durations.jpg}
     \caption{Predicted (red) versus observed (green) distribution of the fixation durations. Left panel shows histogram of the empirical data versus the density estimate using gaussian kernel of the posterior predictives. Right panel shows empirical cumulative distribution functions.}
     \label{fig:predictives_in_sample_durations}
 \end{figure}
@@ -368,7 +368,7 @@ The model also reproduces the distributions of fixation locations.  Figure~\ref{
 
 \begin{figure}
     \centering
-    \includegraphics[width=\textwidth]{figures/fit_model/predictives/in_sample/xy/1251.jpg}
+    \includegraphics[width=\textwidth]{figures/fit_model/in_sample/xy/1251.jpg}
     \caption{Original stimulus created by \citet{xu2014beyond}.}
     \label{fig:predictives_in_sample_xy}
 \end{figure}
@@ -379,14 +379,14 @@ Figure~\ref{fig:predictives_in_sample_amplitude} shows the observed versus predi
 
 \begin{figure}
     \centering
-    \includegraphics[width=\textwidth]{figures/fit_model/predictives/in_sample/amplitude/1251.jpg}
+    \includegraphics[width=\textwidth]{figures/fit_model/in_sample/amplitude/1251.jpg}
     \caption{Observed (blue) versus predicted (red) saccade amplitude on one particular stimulus (see Figure~\ref{fig:predictives_in_sample_xy}).}
     \label{fig:predictives_in_sample_amplitude}
 \end{figure}
 
 \begin{figure}
     \centering
-    \includegraphics[width=0.4\textwidth]{figures/fit_model/predictives/in_sample/angle/1251.jpg}
+    \includegraphics[width=0.4\textwidth]{figures/fit_model/in_sample/angle/1251.jpg}
     \caption{Observed (blue) versus predicted (red) saccade angle on one particular stimulus (see Figure~\ref{fig:predictives_in_sample_xy})}
     \label{fig:predictives_in_sample_angle}
 \end{figure}
@@ -394,7 +394,7 @@ Figure~\ref{fig:predictives_in_sample_amplitude} shows the observed versus predi
 \textit{Parameter estimates}
 The results indicated that the most important factor driving fixations was the locations of objects on the scene (weight = $0.37$, $95\%$ CI[$0.35$, $0.40$], followed by exploitation (weight = $0.30$, $95\%$ CI[$0.28$, $0.31$]), saliency (weight = $0.18$, $95\%$ CI[$0.16$, $0.20$]), and central bias (weight = $0.16$, $95\%$ CI[$0.14$, $0.17$]).
 
-The parameter that controls sizes of objects as identified by \citet{xu2014beyond} indicated that people fixate relatively close to the centroids of the objects (scale = $0.23$, $95\%$ CI[$0.16$, $0.20$]). The exploitation region had a standard deviation $\sigma = 34.58$ ($95\%$ CI[$33.15$, $36.06$]) pixels, whereas the central bias region had a standard deviation $\sigma = 93.84$ ($95\%$ CI[$88.65$, $98.91$]) pixels.
+The parameter that controls sizes of objects as identified by \citet{xu2014beyond} indicated that people fixate relatively close to the centroids of the objects (scale = $0.23$, $95\%$ CI[$0.22$, $0.24$]). The exploitation region had a standard deviation $\sigma = 34.58$ ($95\%$ CI[$33.15$, $36.06$]) pixels, whereas the central bias region had a standard deviation $\sigma = 93.84$ ($95\%$ CI[$88.65$, $98.91$]) pixels.
 
 \subsection{Extended model}
 
@@ -451,11 +451,29 @@ We fitted the extended model in the same way as the initial model: We run 10 MCM
 
 \textit{Posterior predictive checks.} We conducted posterior predictive checks the same way as with the previous model: Comparing the predicted and observed distribution of fixation durations, fixation locations, saccade amplitudes, and saccade angles. The extended model performed similarly to the initial model in terms of the first three variables. As Figure~\ref{fig:horizontal_comparison} demonstrates, the extended model did better in terms of reproducing the overall distribution of saccade angles - being able to reproduce the excess of saccades going in the horizontal direction better after we have explicitly added a factor that represents horizontal bias.
 
+\begin{figure}
+    \centering
+    \includegraphics[width=0.45\linewidth]{figures/fit_model/in_sample/angle.jpg}
+    \includegraphics[width=0.45\linewidth]{figures/fit_model_horizontal/in_sample/angle.jpg}
+    \caption{Predicted versus observed distribution of saccade angles under the initial (left) and extended (right) model, over all stimuli in the data set.}
+    \label{fig:horizontal_comparison}
+\end{figure}
+
+
 \textit{Model comparison.} To assess whether the extended model did better at predicting the data compared to the initial model, we computed the log-likelihood of the hold-out set under the two models, given the posterior distributions of the parameters. This way, we obtained a distributions of the log-likelihood for the two models. To compare the two distributions, we computed the distribution of the log-likelihood differences: $\Delta \log \mathcal{L} = \log \mathcal{L}(\text{Model 2}) - \log \mathcal{L}(\text{Model 1})$: Positive values mean that the extended model predicted the hold-out data better than the initial model, and negative values mean that the initial model predicted the hold-out data better than the initial model.
 
-The log-likelihood difference distribution indicated that the extended model was better at predicting the hold-out data than the intitial model: adding horizontal bias into the model increased the model's predictive success (median=$45.77$, $\text{IQR}[15.18, 77.06]$): adding horizontal bias into the model increased the model's predictive success.
+The log-likelihood difference distribution (median=$45.77$, IQR$[15.18, 77.06]$) indicated that the extended model was better at predicting the hold-out data than the intitial model: adding horizontal bias into the model increased the model's predictive success.
+
+\textit{Parameter estimates.} The estimates indicated that the most important factor were the objects on the scene (weight = $0.35$, $95\%\text{CI}[0.33, 0.37]$, followed by exploitation (weight = $0.31$, $95\%\text{CI}[0.29, 0.32]$, saliency (weight = $0.14$, $95\%\text{CI}[0.13, 0.16]$, central bias (weight = $0.13$, $95\%\text{CI}[0.11, 0.15]$, and lastly the horizontal bias (weight = $0.07$, $95\%\text{CI}[0.06, 0.8]$.
+
+The parameters that control the individual factors were very similar to those of the initial model. The parameter that controls sizes of objects indicated that people fixate relatively close to the centroids of the objects (scale = $0.23$, $95\%\text{CI}[0.22, 0.24]$). The exploitation region had a scale ($\sigma = 34.28$, $95\%\text{CI}[32.80, 35.78]$ of about a third of that of the central bias ($\sigma=98.68$, $95\%\text{CI}[93.42, 103.99]$. The additional parameter that controls the concentration of the horizontal bias was estimated to $\kappa = 18.36$, $95\%\text{CI}[13.4,24.11]$.
+
 
 \section{Conclusion and discussion}
+
+In this article, we have developed a new model to analyse eye movement data by specifying a joint probability distribution of the fixation duration and fixation locations. We were able to fit and extend the model such that the predicted patterns of the fixation durations and fixation locations align very closely with those of the observed data. Further, we demonstrated ways how to validate and test how well the model aligns with the empirical data, and how to identify a room for improvements. Further, the model provides a relatively straightforward interpretation of the model parameters, facilitating the ability to weigh to what extend various explanations of eye movement events play a role.
+
+Although the final model fit relatively well, there are still potential 
 
 
 \bibliography{bibliography}
