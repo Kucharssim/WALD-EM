@@ -89,37 +89,41 @@ After the observed concludes that there is advantage to move to another location
 
 Each location of the stimulus provides some amount of attraction to the observer. We call a function that that maps the stimulus coordinates to that attraction an \textit{intensity} function and denote it as: $\lambda: \mathbb{R}^2 \rightarrow \mathbb{R}_+$, and will write it as $\lambda(x, y | s)$, where $s$ stands for the current fixation. The total amount of intensity of the whole stimulus is the integral (sum) of all the points of the stimulus: $\Lambda = \int\int \lambda(x, y | s)~dx dy$. In essence, we assume that when observers decide \textit{where} to go next, they pick a random location from a distribution proportional to this function. The function may or may not depend on the current or previous fixations, depending on whether we assume a homogeneous (static over time) or heterogeneous (evolving over time) process, and can be adjusted depending on the researcher's questions and desires.
 
-In general, we will represent the intensity function as combination of different factors that influence the intensity of different locations. These factors may represent different features and can be combined in different ways \citep[see][]{barthelme2013spatial}. For example, we can build the intensity function such that it combines bottom up features of the stimulus (e.g., saliency) with systematic tendencies (e.g., central bias or horizontal bias), and so forth. Some of the factors can be thought of as representing information provided by the stimulus, assuming that locations that are rich in the information they provide will be attractive to fixate -- and so will have a high intensity. However, people not always fixate on locations with a lot of information. Later, it will be important to make a distinction between two types of factors that combine in the intensity. The first group of factors will encompass those that in some sense represent, or encode, information provided by the stimulus. The second group comprises of factors that do not represent information of the stimulus but influence the attractiveness of the potential locations by another way.
+In general, we will represent the intensity function as combination of different factors that influence the intensity of different locations. These factors may represent different features and can be combined in different ways \citep[see][]{barthelme2013spatial}. For example, we can build the intensity function such that it combines bottom up features of the stimulus (e.g., saliency) with systematic tendencies (e.g., central bias or horizontal bias), and so forth. Some of the factors can be thought of as representing information provided by the stimulus, assuming that locations that are rich in the information they provide will be attractive to fixate -- and so will have a high intensity. However, people not always fixate on locations with a lot of information. Later, it will be important to make a distinction between two types of factors that combine in the intensity. The first group of factors will encompass those that in some sense represent, or encode, information provided by the stimulus, such as objects, shapes, colors, edges, faces, etc.\footnote{We use the term \textit{information} for a lack of a better word, and do not use it in a strict sense associated with the work of \citet{shannon1948communication}.} We will denote the combination of these factors as $\lambda_1(x, y |s)$ and the integral $\Lambda_1 = \int\int \lambda_1(x, y | s)~dx dy$ will represent the total amount of information provided by the stimulus. The second group comprises of factors that do not represent information of the stimulus but influence the attractiveness of the potential locations by another way, for example heightening the intensity near the center of the stimulus would represent a central bias.
 
-%Modeling unknown functions of this kind can be achieved by various means, see for example Barthelme,~et~al.(2013).
 
 \subsection{Combining model for \textit{when} and \textit{where}}
 
 Human vision is limited by that the most detail available is at a particular part of the retina: fovea, a place where the light falls from roughly around the center of gaze. The physiological aspects of foveal, parafoveal and extrafoveal vision are out of the scope of this article, but similarly to the previous attempts for modeling of eye movements \citep{trukenbrod2014icat, schutt2017likelihood,schwetlick2020ccenewalk_extendeds}, we represent the fact that vision is sharpest inside the fovea by implementing a so called "attentional window". This window suppresses intensity of locations relatively farther from the center of gaze.
 
 
-In essence, we define an attentional window as a function $a:~\mathbb{R}^2~\rightarrow~\mathbb{R}~\in~[0, 1]$ and denote it as $a(x, y | s)$, where $s$ stands for the $x$ and $y$ coordinates of the current fixation. The value of $a$ corresponds to the proportion of the intensity of locations at $(x, y)$ given the current fixation location $s$. To get a representation of the actual intensity of different locations, given a particular fixation location $s$, we can multiply the intensity function by this attentional window: $\omega(x, y | s) = a(x, y | s)\times\lambda(x, y | s)$, and the total amount of accessible intensity during a particular fixation $s$ is $\Omega = \int\int \omega(x, y | s)~dx dy$.
+In essence, we define an attentional window as a function $a:~\mathbb{R}^2~\rightarrow~\mathbb{R}~\in~[0, 1]$ and denote it as $a(x, y | s)$, where $s$ stands for the $x$ and $y$ coordinates of the current fixation. The value of $a$ corresponds to the proportion of the intensity of locations at $(x, y)$ given the current fixation location $s$. To get a representation of the actual intensity of different locations, given a particular fixation location $s$, we can multiply the intensity function by this attentional window: $\omega(x, y | s) = a(x, y | s)\times\lambda(x, y | s)$, and the total amount of accessible intensity during a particular fixation $s$ is $\Omega = \int\int \omega(x, y | s)~dx dy$ (the total amount of information accessible to the observer at a particular location will be denoted as $\Omega_1 = \int\int \omega_1(x, y | s)~dx dy = \int\int a(x, y | s)\times\lambda_1(x, y | s)~dx dy$). Figure~\ref{fig:attention_window} illustrates this concept with examples in one dimension.
 
-Figures ... illustrate this concept with examples in one dimension.
+\begin{figure}
+    \centering
+    \includegraphics[width=\linewidth]{figures/attention_window.png}
+    \caption{The left panel shows an example intensity function $\lambda(x)$ as a function of location along the $x$-coordinate. The middle panel shows the attention window given that the current fixation is at $s_x = 55$ (top) or $s_x=20$ (bottom). The right panel shows the intensity accessible through the attention window.}
+    \label{fig:attention_window}
+\end{figure}
 
-[Include figures here...]
+The concept of attentional window is important in our model as it provides a link between the model for \textit{when} and model for \textit{where} to enable dependencies between the two. In the model for \text{when}, the time it takes the observer to make a decision (to make a saccade) can be modelled as a Wald distribution with parameters drift $\nu$ and decision boundary $\alpha$. However, it is likely that fixation durations vary depending on the surrounding of the current fixation locations \citep{nuthmann2010crisp,nuthmann2017fixation_durations}. 
 
-The concept of attentional window is important in our model as it provides a link between the model for \textit{when} and model for \textit{where} to enable dependencies between the two. As we discussed previously, the time it takes the observer to make a decision can be modelled as a Wald distribution with parameters drift and decision boundary. However, it has been observed that locations with high saliency or cognitive charge are not only fixated more frequently, but the fixation durations are also prolonged on these areas (refs). Further, it has been suggested that processing information that is placed outside of the fovea is more difficult and thus prolongs fixation durations as well \citep{nuthmann2010crisp,nuthmann2017fixation_durations}. 
+The dependency of the fixation durations on fixation locations can be created in two ways. Both approaches rely on the distinction between factors that do and do not represent information provided by the stimulus, as we assume that only information has a potential to influence the fixation duration (e.g., fixating on a location particularly rich on detail will take longer on average than on a location with only a uniform background) and not other factors that do not provide information (e.g., central bias can attract people to make a saccade towards the center of the screen, but there is no immediately plausible mechanism for having longer fixation durations in the center of the screen compared to the edges just because it is in the center).
 
-This can be represented within our model in two ways. First, we can assume that upon arriving to a location $s$, the observer harvests information from around that location with a drift rate $\nu$, and once the information available from that location is depleted, the decision to \textit{Go} is activated. In this framework, $\Omega$ would replace the decision boundary $\alpha$ in the Wald model.
+In the first approach, we can assume that upon arriving to a location $s$, the observer harvests information from around that location with a drift rate $\nu$, and once the information available from that location is depleted, the decision to \textit{Go} is activated. In this framework, the total amount of information available through the attention window $\Omega_1$ would replace the decision boundary $\alpha$ in the Wald model.
 
-Second, we can adopt the idea from LATEST that the decision to go is based on continual comparison of two hypotheses (\textit{Stay} vs \textit{Go}), where the "evidence" is based on the information provided if one or another decision is adopted. The evidence supporting the decision to Stay is the total amount of intensity accessible through the attention window ($\Omega$), whereas the evidence supporting the decision to Go is the total amount of intensity provided by the stimulus ($\Lambda$). In this framework, the drift rate of the Wald model is replaced by the log of the ratio of the two evidences:
+In the second approach, we can adopt the idea from LATEST \citep{tatler2017latest} that the decision to make a saccade is based on continual comparison of two hypotheses (\textit{Stay} vs \textit{Go}), where the "evidence" is based on the information provided if one or another decision is adopted. The evidence supporting the decision to stay is the total amount of information accessible through the attention window ($\Omega_1$), whereas the evidence supporting the decision to Go is the total amount of information provided by the stimulus ($\Lambda_1$). In this framework, the drift rate of the Wald model is replaced by the log of the ratio of the two evidences:
 
-$$\nu = \ln\left(\frac{Go}{Stay}\right) = \ln\left(\frac{\Lambda}{\Omega}\right),$$
+$$\nu = \ln\left(\frac{Go}{Stay}\right) = \ln\left(\frac{\Lambda_1}{\Omega_1}\right),$$
 and the evidence accumulation continues until the decision threshold $\alpha$ is reached.
 
 \section{Concrete model}
 
-In the previous section, we tried to describe the model in conceptual terms. However, in order to implement the model, there are several choices to be made in regards how to model the contribution of different factors, including their functional forms. Some of these choices are purely pragmatic and statistical rather than theoretical, and are mostly motivated by the requirement to have a computationally tractable model.
+In the previous section, we tried to describe the model in conceptual terms. However, in order to implement the model, there are several choices to be made in regards how to model the contribution of different factors, including their functional forms. Some of these choices will be purely pragmatic and statistical rather than theoretical, and are mostly motivated by the requirement to have a computationally tractable and modifiable model.
 
-The model can be difficult to implement due to the two-dimensional integrals that are used to obtain the values of $\Lambda$ (total intensity of the stimulus) and $\Omega$ (total intensity available through the attention window). The analytic tractability of these integrals relies on the functional form of the functions $\lambda(x, y)$ and $a(x, y)$, and consequently $\omega(x, y)$. This obstacle can be solved in two ways. 
+The model can be difficult to implement due to the two-dimensional integrals that are used to obtain the values of $\Lambda_1$ (total information on the stimulus) and $\Omega_1$ (total information available through the attention window). The analytic tractability of these integrals relies on the functional form of the functions $\lambda(x, y)$ and $a(x, y)$, and consequently $\omega(x, y)$. This obstacle can be solved in two ways. 
 
-First, it is possible to divide the stimulus into a grid of discrete locations, leading to an approximation of the continuous space, which leads to tractability regardless of the functional forms (i.e., integrals become sums) at the expense of loosing precision due to the discrete approximation. The degree of precision is arbitrary as it can be increased or decreased by changing the size of the cells in the grid, but could quickly lead to computational bottleneck for fine grained approximations due to the explosion of the number of terms to be summed.
+First, it is possible to divide the stimulus into a grid of discrete locations, leading to an approximation of the continuous space, which leads to tractability regardless of the functional forms (i.e., integrals become sums) at the expense of loosing precision due to the discrete approximation. The degree of precision is arbitrary as it can be increased or decreased by changing the size of the cells in the grid, but could quickly lead to a computational bottleneck for fine grained approximations due to the explosion of the number of terms to be summed.
 
 Second, the construction of the functions at play can be carefully selected such that the integrals are analytically tractable. This severely limits the flexibility of the model as it does not allow for very many choices, but avoids the arbitrary choice of the precision to be used when using the discrete approximation approach.
 
@@ -139,31 +143,27 @@ In our application, we use $\Phi$ to be an identity function, which by using app
 \label{eq:lambdaMixture}
     \lambda(x, y) = \sum \pi_k f_k(x, y),
 \end{equation}
-where $\pi_k \in [0, 1]$ and $\sum \pi_k = 1$, $f_k(x, y) \geq 0~\forall x, \forall y$, and $\int \int f_k(x, y) dx dy = 1$. The value of $\pi_k$ then correspond to the relative importance of a factor $k$, and $f_k(x, y)$ corresponds to a distribution of $x$ and $y$ locations under that factor.
+where $\pi_k \in [0, 1]$ and $\sum \pi_k = 1$, $f_k(x, y) \geq 0~\forall x, \forall y$, and $\int \int f_k(x, y) dx dy = 1$. The value of $\pi_k$ then correspond to the relative importance of a factor $k$, and $f_k(x, y)$ corresponds to a distribution of $x$ and $y$ locations under that factor. By definition, the value of $\Lambda = 1$ (total intensity of stimulus) for whatever setting of the parameters. Particularly attractive property of such definition is the fact that the separation between the factors that represent information on the stimulus from the factors that do not is straightforward. For example, if the first and second factors ($k=1$ and $k=2$) encode objects on the screen and saliency (which can plausibly play a role in fixation durations), whereas the third factor ($k=3$) encodes a central bias (which arguably does not influence fixation durations) then simply $\lambda_1(x, y) = \pi_1 f_1(x, y) + \pi_2 f_2(x, y)$, and $\Lambda_1 = \pi_1 + \pi_2$.
 
-Conceptually, such a formulation represents a generative model where the observer chooses the next fixation by first randomly selecting a factor $k$ with probability $\pi_k$ and then selects the location by randomly drawing from the density of the chosen factor $f_k$.
-
-It is questionable whether this assumption is the most realistic -- for example, taking $\Phi = \exp(x)$ corresponds to observer combining all factors into one meshed weighted map which determines the next fixations, an approach taken by \citet{barthelme2013spatial}. We believe that which approach is more realistic can be partly addressed by empirical comparison of different models that differ in these kind of assumptions.
-
-Additionally, it might be important to distinguish between two types of factors: ones that play a role in fixation durations and those that do not. Examples of factors that are plausibly influencing fixation durations are those that provide any proxy to information value of the stimulus - for example, objects on the screen or saliency. Factors that do not influence fixation durations could be those that do not provide information about the stimulus, for example specific spatial or saccadic preferences (central bias, horizontal bias).
+Conceptually, such a formulation represents a generative model where the observer chooses the next fixation by first randomly selecting a factor $k$ with probability $\pi_k$ and then selects the location by randomly drawing from the density of the chosen factor $f_k$. It is questionable whether this assumption is the most realistic -- for example, taking $\Phi = \exp(x)$ corresponds to observer combining all factors into one meshed weighted map which determines the next fixations, an approach taken by \citet{barthelme2013spatial}. We believe that which approach is more realistic can be partly addressed by empirical comparison of different models that differ in these kind of assumptions.
 
 
 \subsection{Functional forms}
 
-Given our approach of modelling the $\lambda$ function, it is immediately clear that the value of $\Lambda = 1$ (total intensity of stimulus) for whatever setting of the parameters, due to the restrictions we specified in Equation~\ref{eq:lambdaMixture}. The next step is to determine the value of $\Omega$ -- the total intensity available after filtering through the attention window ($a(x, y |
-s)$). Recall that 
+The crucial step is to determine the value of $\Omega$ (or $\Omega_1$) -- the total intensity available after filtering through the attention window $a(x, y |
+s)$. Recall that 
 
 \begin{equation}
     \Omega = \int \int \omega(x, y) dx dy=  \int \int a(x, y) \lambda(x, y)dx dy.
 \end{equation}
 
-Given the model for $\lambda$ introduced in Equation~\ref{eq:lambdaMixture}, we can rewrite it as
+Given the specification of $\lambda$ introduced in Equation~\ref{eq:lambdaMixture}, we can rewrite it as
 
 \begin{equation}
 \label{eq:GammaDoubleIntegral}
     \Omega = \int \int a(x, y) \sum \pi_k f_k(x, y) dx dy = \sum \pi_k \int \int a(x, y) f_k(x, y) dx dy,
 \end{equation}
-from which it is clearly visible that choice of the functional form of the attention window $a(x, y)$ and the individual factors $f_k(x, y)$ determines whether is the model tractable without discretization. One of the possibilities to satisfy this is to model each $f_k(x, y)$ as a bivariate Normal distribution, and $a(x, y)$ as a kernel of a bivariate Normal distribution (i.e., neglecting the normalizing constant). Further, we will assume that the dimensions are uncorrelated, thus $f_k(x, y) = f_k(x)f_k(y)$ and $a(x, y) = a(x)a(y)$, where $f_k(.)$ is a Normal distribution with parameters $\mu_k$ and $\sigma_k$ for the appropriate dimensions, and $a(.)$ is similarly the gaussian kernel with center at the current fixation ($s$) and scale parameter $\sigma_a$ in the appropriate dimension. This allows us to rewrite the double integral in Equation~\ref{eq:GammaDoubleIntegral} into a product of two integrals:
+from which it is clearly visible that choice of the functional form of the attention window $a(x, y)$ and the individual factors $f_k(x, y)$ determine whether is the model tractable without approximation through discretization. One of the possibilities to satisfy this is to model each $f_k(x, y)$ as a bivariate normal distribution, and $a(x, y)$ as a kernel of a bivariate normal distribution. Further, we will assume that the dimensions are uncorrelated, thus $f_k(x, y) = f_k(x)f_k(y)$ and $a(x, y) = a(x)a(y)$, where $f_k(.)$ is a Normal distribution with parameters $\mu_k$ and $\sigma_k$ for the appropriate dimensions, and $a(.)$ is similarly the gaussian kernel with center at the current fixation ($s$) and scale parameter $\sigma_a$ in the appropriate dimension. This allows us to rewrite the double integral in Equation~\ref{eq:GammaDoubleIntegral} into a product of two integrals:
 
 \begin{equation}
     \Omega =  \sum \pi_k \int a(x)f_k(x) dx \int a(y)f_k(y) dy, 
@@ -183,16 +183,16 @@ which has a simple analytic solution:
 \end{equation}
 and equivalently in the $y$ dimension.
 
-Finally, we use the parametrization where the drift rate $\nu$ varies with the location of the fixation. Combining the previous two Equations, we can write the drift rate as following
+Finally, we use the parametrization where the drift rate $\nu$ varies with the location of the fixation. Combining the previous two equations, we can write the drift rate as following
 
 \begin{equation}
 \label{eq:nuAsLogOmega}
 \begin{aligned}
-\nu | s, \sigma_a, \lambda & = \ln(\Lambda) - \ln(\Omega) = - \ln(\Omega) \\
-& = - \ln \sum_{k=1}^K \exp \Bigg[\ln \pi_k + \sum_{i=1}^2 \Big( \ln \sigma_{ai} - \frac{\ln (\sigma_{ai}^2+ \sigma_{ki}^2)}{2} - \frac{(\mu_{ki} - s_i)^2}{2(\sigma_{ai}^2 + \sigma_{ki}^2)} \Big)  \Bigg],
+\nu | s, \sigma_a, \lambda & = \ln(\Lambda) - \ln(\Omega) = \ln(\Lambda) - \ln(\Omega) \\
+& = \ln\sum_{k=1}^K \pi_k- \ln \sum_{k=1}^K \exp \Bigg[\ln \pi_k + \sum_{i=1}^2 \Big( \ln \sigma_{ai} - \frac{\ln (\sigma_{ai}^2+ \sigma_{ki}^2)}{2} - \frac{(\mu_{ki} - s_i)^2}{2(\sigma_{ai}^2 + \sigma_{ki}^2)} \Big)  \Bigg],
 \end{aligned}
 \end{equation}
-where the iteration over $i$ only makes explicit the integration over $x$ and $y$ dimensions. The above expression was purposely written in the log-sum-exp-log form explicitly to bring it in line with its computational implementation (which is more stable in this form). 
+where the iteration over $i$ only makes explicit the integration over $x$ and $y$ dimensions. The above expression was purposely written in the log-sum-exp-log form explicitly to bring it in line with its computational implementation (which is more stable in this form). In case not all factors provide information, the only change in Equation~\ref{eq:nuAsLogOmega} would be the term $K$ in the first summation (e.g., if the first two factors belong to $\lambda_1$ but not the third, $K=3$ would be replaced with $K=2$).
 
 \subsection{Likelihood}
 
@@ -322,7 +322,7 @@ The first factor is the location and sizes of objects on the scene. We assume th
 \end{equation}
 where $\omega_j$ are the individual attractivities of different objects on a particular image, and that $\gamma$ is a scaling factor that stretches or compresses the attractivity of objects proportionally to their sizes.
 
-The second factor is the saliency, which we treated as described in \ref{eq:saliency_where}.
+The second factor is the saliency, which we treated as described in Equation~\ref{eq:saliency_where}.
 
 The third factor can be described as an exploitation factor, and captures the phenomenon that people tend to linger close to the current fixation location: we model it as a bi variate normal distribution centered at the fixation location at time $t$ to predict the fixation location at time $t+1$:
 
@@ -369,7 +369,7 @@ The model also reproduces the distributions of fixation locations.  Figure~\ref{
 \begin{figure}
     \centering
     \includegraphics[width=\textwidth]{figures/fit_model/in_sample/xy/1251.jpg}
-    \caption{Original stimulus created by \citet{xu2014beyond}.}
+    \caption{Example of the model for fixation locations on the stimulus created by \citet{xu2014beyond} (top left panel). The four factors influencing the fixation locations are depicted in the top right quadrant. The bottom left panel shows the observed fixation locations, and the bottom right the draws from the posterior predictive distribution of the fitted model.}
     \label{fig:predictives_in_sample_xy}
 \end{figure}
 
@@ -464,9 +464,9 @@ We fitted the extended model in the same way as the initial model: We run 10 MCM
 
 The log-likelihood difference distribution (median=$45.77$, IQR$[15.18, 77.06]$) indicated that the extended model was better at predicting the hold-out data than the intitial model: adding horizontal bias into the model increased the model's predictive success.
 
-\textit{Parameter estimates.} The estimates indicated that the most important factor were the objects on the scene (weight = $0.35$, $95\%\text{CI}[0.33, 0.37]$, followed by exploitation (weight = $0.31$, $95\%\text{CI}[0.29, 0.32]$, saliency (weight = $0.14$, $95\%\text{CI}[0.13, 0.16]$, central bias (weight = $0.13$, $95\%\text{CI}[0.11, 0.15]$, and lastly the horizontal bias (weight = $0.07$, $95\%\text{CI}[0.06, 0.8]$.
+\textit{Parameter estimates.} The estimates indicated that the most important factor were the objects on the scene (weight = $0.35$, $95\%\text{CI}[0.33, 0.37]$, followed by exploitation (weight = $0.31$, $95\%\text{CI}[0.29, 0.32]$, saliency (weight = $0.14$, $95\%\text{CI}[0.13, 0.16]$, central bias (weight = $0.13$, $95\%\text{CI}[0.11, 0.15]$, and lastly the horizontal bias (weight = $0.07$, $95\%\text{CI}[0.06, 0.8]$).
 
-The parameters that control the individual factors were very similar to those of the initial model. The parameter that controls sizes of objects indicated that people fixate relatively close to the centroids of the objects (scale = $0.23$, $95\%\text{CI}[0.22, 0.24]$). The exploitation region had a scale ($\sigma = 34.28$, $95\%\text{CI}[32.80, 35.78]$ of about a third of that of the central bias ($\sigma=98.68$, $95\%\text{CI}[93.42, 103.99]$. The additional parameter that controls the concentration of the horizontal bias was estimated to $\kappa = 18.36$, $95\%\text{CI}[13.4,24.11]$.
+The parameters that control the individual factors were very similar to those of the initial model. The parameter that controls sizes of objects indicated that people fixate relatively close to the centroids of the objects (scale = $0.23$, $95\%\text{CI}[0.22, 0.24]$). The exploitation region had a scale ($\sigma = 34.28$, $95\%\text{CI}[32.80, 35.78]$) of about a third of that of the central bias ($\sigma=98.68$, $95\%\text{CI}[93.42, 103.99]$). The additional parameter that controls the concentration of the horizontal bias was estimated to $\kappa = 18.36$, $95\%\text{CI}[13.4,24.11]$.
 
 
 \section{Conclusion and discussion}
