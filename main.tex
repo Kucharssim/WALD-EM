@@ -85,7 +85,7 @@ Other models contain similar data generating processes. For example, ICAT \citep
 
 \subsection{Model for \textit{where}}
 
-After the observer concludes that there is advantage to move to another location, it is time to make a saccade.
+After the observer concludes that there is an advantage to move to another location, it is time to make a saccade.
 
 Each location of the stimulus provides some amount of attraction to the observer. We call a function that maps the stimulus coordinates to that attraction an \textit{intensity} function and denote it as: $\lambda: \mathbb{R}^2 \rightarrow \mathbb{R}_+$, and will write it as $\lambda(x, y | s)$, where $s$ stands for the current fixation. The total amount of intensity of the whole stimulus is the integral (sum) of all the points of the stimulus: $\Lambda = \int\int \lambda(x, y | s)~dx dy$. In essence, we assume that when observers decide \textit{where} to go next, they pick a random location from a distribution proportional to this function. The function may or may not depend on the current or previous fixations, depending on whether we assume a homogeneous (static over time) or heterogeneous (evolving over time) process, and can be adjusted depending on the researcher's questions and desires.
 
@@ -130,7 +130,7 @@ Second, the construction of the functions at play can be carefully selected such
 
 \subsection{Modeling $\lambda$}
 
-The model for the function $\lambda$ that converts the coordinates of the stimulus to intensity can be achieved in different ways. We generally desire to include different factors in the model, for example central and directional biases, information about locations of objects on the scene, etc. This can be achieved by the following \citep{barthelme2013spatial}:
+The model for the function $\lambda$ that converts the coordinates of the stimulus to intensity can be achieved in different ways. We generally desire to include different factors in the model, for example central and directional biases, information about locations of objects on the scene, etc. This can be achieved by following \citep{barthelme2013spatial}:
 
 \begin{equation}
     \lambda(x, y) = \Phi \left(\sum \beta_k f_k(x, y) \right),
@@ -151,19 +151,19 @@ Conceptually, such a formulation represents a generative model where the observe
 \subsection{Functional forms}
 
 The crucial step is to determine the value of $\Omega$ (or $\Omega_1$) -- the total intensity available after filtering through the attention window $a(x, y |
-s)$. Recall that 
+s)$. Recall that: 
 
 \begin{equation}
     \Omega = \int \int \omega(x, y) dx dy=  \int \int a(x, y) \lambda(x, y)dx dy.
 \end{equation}
 
-Given the specification of $\lambda$ introduced in Equation~\ref{eq:lambdaMixture}, we can rewrite it as
+Given the specification of $\lambda$ introduced in Equation~\ref{eq:lambdaMixture}, we can rewrite it as:
 
 \begin{equation}
 \label{eq:GammaDoubleIntegral}
     \Omega = \int \int a(x, y) \sum \pi_k f_k(x, y) dx dy = \sum \pi_k \int \int a(x, y) f_k(x, y) dx dy,
 \end{equation}
-from which it is clearly visible that choice of the functional form of the attention window $a(x, y)$ and the individual factors $f_k(x, y)$ determine whether is the model tractable without approximation through discretization. One of the possibilities to satisfy this is to model each $f_k(x, y)$ as a bivariate normal distribution, and $a(x, y)$ as a kernel of a bivariate normal distribution. Further, we will assume that the dimensions are uncorrelated, thus $f_k(x, y) = f_k(x)f_k(y)$ and $a(x, y) = a(x)a(y)$, where $f_k(.)$ is a Normal distribution with parameters $\mu_k$ and $\sigma_k$ for the appropriate dimensions, and $a(.)$ is similarly the gaussian kernel with center at the current fixation ($s$) and scale parameter $\sigma_a$ in the appropriate dimension. This allows us to rewrite the double integral in Equation~\ref{eq:GammaDoubleIntegral} into a product of two integrals:
+from which it is clearly visible that choice of the functional form of the attention window $a(x, y)$ and the individual factors $f_k(x, y)$ determine whether the model will be tractable without approximation through discretization. One of the possibilities to satisfy this is to model each $f_k(x, y)$ as a bivariate normal distribution, and $a(x, y)$ as a kernel of a bivariate normal distribution. Further, we will assume that the dimensions are uncorrelated, thus $f_k(x, y) = f_k(x)f_k(y)$ and $a(x, y) = a(x)a(y)$, where $f_k(.)$ is a Normal distribution with parameters $\mu_k$ and $\sigma_k$ for the appropriate dimensions, and $a(.)$ is similarly the gaussian kernel with center at the current fixation ($s$) and scale parameter $\sigma_a$ in the appropriate dimension. This allows us to rewrite the double integral in Equation~\ref{eq:GammaDoubleIntegral} into a product of two integrals:
 
 \begin{equation}
     \Omega =  \sum \pi_k \int a(x)f_k(x) dx \int a(y)f_k(y) dy, 
@@ -183,7 +183,7 @@ which has a simple analytic solution:
 \end{equation}
 and equivalently in the $y$ dimension.
 
-Finally, we use the parametrization where the drift rate $\nu$ varies with the location of the fixation. Combining the previous two equations, we can write the drift rate as following
+Finally, we use the parametrization where the drift rate $\nu$ varies with the location of the fixation. Combining the previous two equations, we can write the drift rate as follows:
 
 \begin{equation}
 \label{eq:nuAsLogOmega}
@@ -197,14 +197,14 @@ where the iteration over $i$ only makes explicit the integration over $x$ and $y
 \subsection{Likelihood}
 
 
-Assuming data in the form of $d \in \mathbb{R}_+^T$ as the durations and $s = (s_x, s_y) \in \mathbb{R}^{T\times2}$ as the $x$ and $y$ coordinates of $T$ observed fixations, likelihood of the model can be written as:
+Assuming data in the form of $d \in \mathbb{R}_+^T$ as the durations and $s = (s_x, s_y) \in \mathbb{R}^{T\times2}$ as the $x$ and $y$ coordinates of $T$ observed fixations, the likelihood of the model can be written as:
 
 \begin{equation}
     \mathcal{L}(\theta | d, s) = \prod_{t=1}^T \lambda^{(t)}(s_x^{(t)}, s_y^{(t)} | \pi, \mu, \sigma) \times f_{W}(d^{(t)} | \nu^{(t)}, \alpha),
 \end{equation}
-where superscript for $\lambda$ means that the intensity function might change during the course of time (which we show later), and $\nu^{(t)}$ changes depending on the current location through Equation~\ref{eq:nuAsLogOmega}. $f_W$ stands for the p.d.f. of the Wald distribution.
+where the superscript for $\lambda$ means that the intensity function might change during the course of time (which we show later), and $\nu^{(t)}$ changes depending on the current location through Equation~\ref{eq:nuAsLogOmega}. $f_W$ stands for the p.d.f. of the Wald distribution.
 
-In general, assuming $K$ factors included in the model, the model can have $K$ parameters $\pi_1, ..., \pi_K$, $2\times K$ parameters $\mu_1, ..., \mu_K$ (each a vector of 2 for $x$ and $y$ direction), $2\times K$ parameters $\sigma_1, ..., \sigma_K$ (each a vector of 2 for $x$ and $y$ direction), 2 parameters for $\sigma_a$ (width of the attention window in $x$ and $y$ direction), and $\alpha$, totalling $5K + 3 - 1$ free parameters. Depending on the actual factors included in the model, we will be able to fix or equate some parameters to reduce the number of parameters to be estimated, although it is not necessary to do so.
+In general, assuming $K$ factors included in the model, the model can have $K$ parameters $\pi_1, ..., \pi_K$, $2\times K$ parameters $\mu_1, ..., \mu_K$ (each a vector of 2 for $x$ and $y$ direction), $2\times K$ parameters $\sigma_1, ..., \sigma_K$ (each a vector of 2 for the $x$ and $y$ directions), 2 parameters for $\sigma_a$ (the width of the attention window in the $x$ and $y$ directions), and $\alpha$, totalling $5K + 3 - 1$ free parameters. Depending on the actual factors included in the model, we will be able to fix or equate some parameters to reduce the number of parameters to be estimated, although it is not necessary to do so.
 
 % \section{Case Studies}
 
@@ -250,7 +250,7 @@ In general, assuming $K$ factors included in the model, the model can have $K$ p
 
 \subsection{Including saliency}
 
-An important branch of models that describe and predict distribution of fixation locations are saliency models. We define a classic saliency model an algorithm that takes the image (stimulus) as an input, and which produces an output, usually by assigning each pixel a value representing the local saliency of that pixel. Common features that these models consider important are local-global contrasts in color, intensity, and edges.
+An important branch of models that describe and predict distributions of fixation locations are saliency models. We define a classic saliency model as an algorithm that takes the image (stimulus) as an input, and which produces an output, usually by assigning each pixel a value representing the local saliency of that pixel. Common features that these models consider important are local-global contrasts in color, intensity, and edges.
 
 Saliency models enjoy a lot of success in predicting eye movement behavior and thus it seems reasonable to include some form of a saliency map as one of the factors in our model. Unfortunately, given the nature of the output of saliency models, it is not possible to implement the model fully analytically, and we will instead resort to discretization.
 
