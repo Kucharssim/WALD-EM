@@ -114,7 +114,10 @@ In the first approach, we can assume that upon arriving to a location $s$, the o
 
 In the second approach, we can adopt the idea from LATEST \citep{tatler2017latest} that the decision to make a saccade is based on continual comparison of two hypotheses (\textit{Stay} vs \textit{Go}), where the "evidence" is based on the information provided if one or another decision is adopted. The evidence supporting the decision to stay is the total amount of information accessible through the attention window ($\Omega_1$), whereas the evidence supporting the decision to Go is the total amount of information provided by the stimulus ($\Lambda_1$). In this framework, the drift rate of the Wald model is replaced by the log of the ratio of the two evidences:
 
-$$\nu = \ln\left(\frac{Go}{Stay}\right) = \ln\left(\frac{\Lambda_1}{\Omega_1}\right),$$
+\begin{equation}
+\nu = \ln\left(\frac{Go}{Stay}\right) = \ln\left(\frac{\Lambda_1}{\Omega_1}\right),
+\end{equation}
+
 and the evidence accumulation continues until the decision threshold $\alpha$ is reached.
 
 \section{Concrete model}
@@ -137,15 +140,15 @@ The model for the function $\lambda$ that converts the coordinates of the stimul
 \end{equation}
 where $\beta_k$ is a weight of a factor $k$, $f_k$ is a function that maps factor $k$ to the locations $(x, y)$, and $\Phi$ is analogous to a link function in GLMs. Particularly suitable candidates for this function are $\Phi (x) = \exp(x)$, $\Phi (x) = x$, $\Phi (x) = \ln(\exp(x) + 1)$ or their combinations \citep[see ][for the discussion of the differences between them]{barthelme2013spatial}. 
 
-In our application, we use $\Phi$ to be an identity function, which by using appropriate restrictions results in a mixture model:
+In our application, we use $\Phi$ to be an identity function, which by using appropriate restrictions (specified below Equation~\ref{eq:lambdaMixture}) results in a mixture model:
 
 \begin{equation}
 \label{eq:lambdaMixture}
     \lambda(x, y) = \sum \pi_k f_k(x, y),
 \end{equation}
-where $\pi_k \in [0, 1]$ and $\sum \pi_k = 1$, $f_k(x, y) \geq 0~\forall x, \forall y$, and $\int \int f_k(x, y) dx dy = 1$. The value of $\pi_k$ then correspond to the relative importance of a factor $k$, and $f_k(x, y)$ corresponds to a distribution of $x$ and $y$ locations under that factor. By definition, the value of $\Lambda = 1$ (total intensity of stimulus) for whatever setting of the parameters. Particularly attractive property of such definition is the fact that the separation between the factors that represent information on the stimulus from the factors that do not is straightforward. For example, if the first and second factors ($k=1$ and $k=2$) encode objects on the screen and saliency (which can plausibly play a role in fixation durations), whereas the third factor ($k=3$) encodes a central bias (which arguably does not influence fixation durations) then simply $\lambda_1(x, y) = \pi_1 f_1(x, y) + \pi_2 f_2(x, y)$, and $\Lambda_1 = \pi_1 + \pi_2$.
+where $\pi_k \in [0, 1]$ and $\sum \pi_k = 1$, $f_k(x, y) \geq 0~\forall x, \forall y$, and $\int \int f_k(x, y) dx dy = 1$, making the $\lambda(x, y)$ a proper probability density over a plane. The value of $\pi_k$ then correspond to the relative importance of a factor $k$, and $f_k(x, y)$ corresponds to a distribution of $x$ and $y$ locations under that factor. By definition, the value of $\Lambda = 1$ (total intensity of stimulus) for whatever setting of the parameters. Particularly attractive property of such definition is the fact that the separation between the factors that represent information on the stimulus from the factors that do not is straightforward. For example, if the first and second factors ($k=1$ and $k=2$) encode objects on the screen and saliency (which can plausibly play a role in fixation durations), whereas the third factor ($k=3$) encodes a central bias (which arguably does not influence fixation durations) then simply $\lambda_1(x, y) = \pi_1 f_1(x, y) + \pi_2 f_2(x, y)$, and $\Lambda_1 = \pi_1 + \pi_2$.
 
-Conceptually, such a formulation represents a generative model where the observer chooses the next fixation by first randomly selecting a factor $k$ with probability $\pi_k$ and then selects the location by randomly drawing from the density of the chosen factor $f_k$. It is questionable whether this assumption is the most realistic -- for example, taking $\Phi = \exp(x)$ corresponds to observer combining all factors into one meshed weighted map which determines the next fixations, an approach taken by \citet{barthelme2013spatial}. We believe that which approach is more realistic can be partly addressed by empirical comparison of different models that differ in these kind of assumptions.
+Conceptually, such a formulation represents a generative model where the observer chooses the next fixation by first randomly selecting a factor $k$ with probability $\pi_k$ and then selects the location by randomly drawing from the density of the chosen factor $f_k$. It is questionable whether this assumption is the most realistic -- for example, taking $\Phi = \exp(x)$ (a log-additive model) correspond to observer combining all factors into one meshed weighted map which determines the next fixations, an approach taken by \citet{barthelme2013spatial}. We believe that which approach is more realistic can be partly addressed by empirical comparison of different models that differ in these kind of assumptions.
 
 
 \subsection{Functional forms}
@@ -164,12 +167,10 @@ Given the specification of $\lambda$ introduced in Equation~\ref{eq:lambdaMixtur
     \Omega = \int \int a(x, y) \sum \pi_k f_k(x, y) dx dy = \sum \pi_k \int \int a(x, y) f_k(x, y) dx dy,
 \end{equation}
 from which it is clearly visible that choice of the functional form of the attention window $a(x, y)$ and the individual factors $f_k(x, y)$ determine whether the model will be tractable without approximation through discretization. One of the possibilities to satisfy this is to model each $f_k(x, y)$ as a bivariate normal distribution, and $a(x, y)$ as a kernel of a bivariate normal distribution. Further, we will assume that the dimensions are uncorrelated, thus $f_k(x, y) = f_k(x)f_k(y)$ and $a(x, y) = a(x)a(y)$, where $f_k(.)$ is a Normal distribution with parameters $\mu_k$ and $\sigma_k$ for the appropriate dimensions, and $a(.)$ is similarly the gaussian kernel with center at the current fixation ($s$) and scale parameter $\sigma_a$ in the appropriate dimension. This allows us to rewrite the double integral in Equation~\ref{eq:GammaDoubleIntegral} into a product of two integrals:
-
 \begin{equation}
     \Omega =  \sum \pi_k \int a(x)f_k(x) dx \int a(y)f_k(y) dy, 
 \end{equation}
 which has a simple analytic solution:
-
 \begin{equation}
 \begin{aligned}
 \int a(x)f_k(x) dx = & \int \frac{1}{\sqrt{2\pi\sigma_k^2}} \exp\left[-\frac{(x-\mu_k)^2}{2\sigma_k^2}\right] \exp\left[-\frac{(x-s_x)^2}{2\sigma_a^2}\right]~dx = \\
@@ -188,7 +189,7 @@ Finally, we use the parametrization where the drift rate $\nu$ varies with the l
 \begin{equation}
 \label{eq:nuAsLogOmega}
 \begin{aligned}
-\nu | s, \sigma_a, \lambda & = \ln(\Lambda) - \ln(\Omega) = \ln(\Lambda) - \ln(\Omega) \\
+\nu | s, \sigma_a, \lambda & = \ln(\Lambda_1) - \ln(\Omega_1) = \ln(\Lambda_1) - \ln(\Omega_1) \\
 & = \ln\sum_{k=1}^K \pi_k- \ln \sum_{k=1}^K \exp \Bigg[\ln \pi_k + \sum_{i=1}^2 \Big( \ln \sigma_{ai} - \frac{\ln (\sigma_{ai}^2+ \sigma_{ki}^2)}{2} - \frac{(\mu_{ki} - s_i)^2}{2(\sigma_{ai}^2 + \sigma_{ki}^2)} \Big)  \Bigg],
 \end{aligned}
 \end{equation}
@@ -198,7 +199,6 @@ where the iteration over $i$ only makes explicit the integration over $x$ and $y
 
 
 Assuming data in the form of $d \in \mathbb{R}_+^T$ as the durations and $s = (s_x, s_y) \in \mathbb{R}^{T\times2}$ as the $x$ and $y$ coordinates of $T$ observed fixations, the likelihood of the model can be written as:
-
 \begin{equation}
     \mathcal{L}(\theta | d, s) = \prod_{t=1}^T \lambda^{(t)}(s_x^{(t)}, s_y^{(t)} | \pi, \mu, \sigma) \times f_{W}(d^{(t)} | \nu^{(t)}, \alpha),
 \end{equation}
@@ -284,7 +284,7 @@ These steps enable us to approximately compute the drift rate by substituting th
 
 However, this implementation still requires serious computational resources: for example, fitting a model that includes a saliency map of resolution of $800\times600$ pixels would mean summing up $P = 800\times600 = 480,000$ terms for every fixation in every iteration of the fitting procedure.
 
-There are generally 3 ways to alleviate the problem of the computational complexity. First, it is possible not to include the discrete factor in the model for \textit{when}, but only include it into the factor for \textit{where}. However, leaving it out does not solve the problem, but rather avoids it altogether. Second, it is possible to downsample the output of the saliency map. Indeed, many saliency algorithms already output the saliency map that has a resolution smaller than the original image \citep[e.g., by a factor of $16$ in each of the dimensions,][] {itti1998model}. Having an input image of dimensions of $800\times600$ pixels then leads to quite substantial reduction: Instead of summing up 480,000 terms we need to sum up only about 2,000. Downsampling the saliency maps to have smaller resolution than the input image is also desirable from a measurement perspective as the eye-tracking devices likely have measurement error that translate to several pixels of the input image.  Downsampled saliency maps then correspond better to the level of precision of the data. Third, it is possible to limit the summation only for the terms that lie in a relative proximity from the current fixation. For example, the attention window lets through only at most $1.1\%$ of the total weights of the pixels that lie at a distance of $3\sigma_a$ or more, essentially meaning that many of the terms in the sum are basically zero. Leaving out the pixels that are that far from the current fixation can reduce the number of terms to be summed by a great amount while not sacrificing much of the computational accuracy.
+There are generally 3 ways to alleviate the problem of the computational complexity. First, it is possible not to include the discrete factor in the model for \textit{when}, but only include it into the factor for \textit{where}. However, leaving it out does not solve the problem, but rather avoids it altogether. Second, it is possible to downsample the output of the saliency map. Indeed, many saliency algorithms already output the saliency map that has a resolution smaller than the original image \citep[e.g., by a factor of $16$ in each of the dimensions,][] {itti1998model}. Having an input image of dimensions of $800\times600$ pixels then leads to quite substantial reduction: Instead of summing up 480,000 terms we need to sum up only about 2,000. Downsampling the saliency maps to have smaller resolution than the input image is also desirable from a measurement perspective as the eye-tracking devices likely have measurement error that translate to several pixels of the input image.  Downsampled saliency maps then correspond better to the level of precision of the data. Third, it is possible to limit the summation only for the terms that lie in a relative proximity from the current fixation. For example, the attention window lets through only at most $1.1\%$ of the total weights of the pixels that lie at a distance of $3\sigma_a$ or more, essentially meaning that many of the terms in the sum are basically zero. Leaving out the pixels that are that far from the current fixation can reduce the number of terms to be summed by a great amount while not sacrificing much of the computational accuracy. Downsampling and limiting the summations are not mutually exclusive and can be used at the same time -- an approach we take in the practical implementation of our model.
 
 
 
@@ -302,13 +302,13 @@ As an inherent product of the model, we will also obtain assessment of the indiv
 
 The data contains recordings of 47 participants looking at 29 static pictures selected from the pool of 700 images created by \citet{xu2014beyond}. 39 participants looked at all 29 stimuli (min = 5, mean = 27.6, median = 29, max = 29 viewed images per participant). The mean number of fixations per trial was 11.4 (sd = 4.3); the total number of fixations in the data set is 14,807.
 
-We split the data set in two parts, one of which we used to estimate the parameters of a model (number of fixations = 7,207), and one of which we used to validate the predictions of the model. We counter balanced the number of trials per participant in the two sets to ensure that both data sets contain some data from all participants and all items.  
+We split the data set in two parts, one of which we used to estimate the parameters of a model (number of fixations = 7,207), and one of which we used to validate the predictions of the model. We counter balanced the number of trials per participant in the two sets to ensure that both data sets contain some data from all participants and all items. The details of the procedure are available at \url{https://github.com/Kucharssim/DMEM/blob/master/scripts/prepare\_data.md}. 
 
 \subsection{Initial Model}
 
-The model contains four factors that determine the fixation locations, and two additional factors that determine the saccade timing.
+The model contains four factors that determine the fixation locations, two of which are included in the model for fixation duration.
 
-Model for where is composed of four factors, and so we can describe the distribution of fixation locations as follows:
+The model for where is composed of four factors, and so we can describe the distribution of fixation locations as follows:
 
 \begin{equation}
     (x, y) \sim \sum_{k=1}^4 \pi_k f_k(x, y | \theta_k),
@@ -345,7 +345,7 @@ The model for fixation duration can be summarised as following.
 \end{gather*}
 
 
-We wrote the model using the probabilistic programming language Stan \citep{carpenter2017stan} interfacing with R \citep{citeR} using the package \texttt{rstan} \citep{team2020rstan}.
+We implemented the model using the probabilistic programming language Stan \citep{carpenter2017stan} interfacing with R \citep{citeR} using the package \texttt{rstan} \citep{team2020rstan}.
 
 \subsection{Results - Initial model}
 
