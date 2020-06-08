@@ -13,7 +13,7 @@ ggplot2::theme_update(axis.ticks.length = ggplot2::unit(6, "pt"),
 
 # load data and fitted model
 load(here::here("data", "cleaned_data.Rdata"))
-load(here::here("saves", "fit_model.Rdata"))
+load(here::here("saves", "fit_model_horizontal.Rdata"))
 # load(here::here("saves", "stan_data.Rdata"))
 
 summary_pars <- summary(fit)$summary
@@ -22,7 +22,7 @@ summary_pars <- summary(fit)$summary
 source(here::here("R", "colours.R"))
 source(here::here("R", "load_image.R"))
 # create list from data to pass to Stan
-df_sub <- subset(df, train)
+df_sub <- subset(df, !train)
 df_sub <- dplyr::mutate(df_sub, obs = 1:nrow(df_sub))
 
 stan_data <- list(
@@ -47,8 +47,8 @@ stan_data <- list(
   log_lik_saliency  = df_sub$log_lik_saliency,
   max_neighbors     = ncol(saliency_log),
   N_neighbors       = df_sub$n_neighbors,
-  mean_sq_distances = mean_sq_distances[df$train,,drop=FALSE],
-  saliency_log      = saliency_log     [df$train,,drop=FALSE],
+  mean_sq_distances = mean_sq_distances[!df$train,,drop=FALSE],
+  saliency_log      = saliency_log     [!df$train,,drop=FALSE],
   
   N_pix             = max(saliency_normalized$idx),
   half_width_pixel  = 0.5 * 800 / max(saliency_normalized$row),
@@ -60,23 +60,22 @@ stan_data <- list(
 )
 
 
-gqs_model <- rstan::stan_model(here::here("stan", "gqs_objects_central_distance_saliency.stan"))
+gqs_model <- rstan::stan_model(here::here("stan", "gqs_objects_central_distance_saliency_horizontal.stan"))
 
 mcmc <- as.data.frame(fit)
-#mcmc <- mcmc[, c(1:360, 363:457)]
-mcmc <- mcmc %>% dplyr::select(sigma_center, sigma_distance, scale_obj, 
+mcmc <- mcmc %>% dplyr::select(sigma_center, sigma_distance, scale_obj, kappa,
                                dplyr::starts_with("weights"), 
                                dplyr::starts_with("z_weights_obj"),
                                dplyr::starts_with("log_weights"),
                                dplyr::starts_with("alpha"), 
                                dplyr::starts_with("sigma_attention"))
-mcmc <- mcmc %>% dplyr::sample_n(size = 40) # generate 100 predictives for every data point
+mcmc <- mcmc %>% dplyr::sample_n(size = 40) # generate 40 predictives for every data point
 
 posterior_predictives <- rstan::gqs(gqs_model, data = stan_data, draws = mcmc)
 
 rm(fit, mcmc, stan_data, saliency_log) # unload memory a little
-save(posterior_predictives, file = here::here("saves", "posterior_predictives_in_sample.Rdata"))
-load(here::here("saves", "posterior_predictives_in_sample.Rdata"))
+save(posterior_predictives, file = here::here("saves", "posterior_predictives_out_sample_horizontal.Rdata"))
+load(here::here("saves", "posterior_predictives_out_sample_horizontal.Rdata"))
 
 mcmc_pred <- as.data.frame(posterior_predictives)
 
@@ -124,7 +123,7 @@ p2 <- ggplot2::ggplot(df_sub, ggplot2::aes(x = duration)) +
 p1_2 <- p1 + p2
 p1_2
 
-ggplot2::ggsave(filename = "fixation_durations.jpg", path = here::here("figures", "fit_model", "in_sample"),
+ggplot2::ggsave(filename = "fixation_durations.jpg", path = here::here("figures", "fit_model_horizontal", "out_sample"),
                 plot = p1_2, width = 8, height = 4)
 
 # X and Y coordinates checks ----
@@ -132,7 +131,7 @@ x_rep <- mcmc_pred %>%
   dplyr::select(dplyr::starts_with("x"))
 x_rep$iter <- 1:nrow(x_rep) 
 x_rep <- tidyr::pivot_longer(x_rep, cols = dplyr::starts_with("x"), names_prefix = "x_rep",
-                             names_to = "obs", values_to = "x")
+                              names_to = "obs", values_to = "x")
 
 y_rep <- mcmc_pred %>% 
   dplyr::select(dplyr::starts_with("y"))
@@ -246,12 +245,12 @@ for(img in unique(df_sub$id_img)){
     ggplot2::coord_fixed() +
     ggplot2::ggtitle("Central bias")
   
-  # stich if together
+  # stich it together
   pp_fac <- pp_4 + pp_5 + pp_6 + pp_7 + patchwork::plot_layout(ncol = 2)
   pp <- pp_1 + pp_fac + pp_2 + pp_3 + patchwork::plot_layout(ncol = 2)
   
   # save
-  ggplot2::ggsave(image_name, pp, path = here::here("figures/fit_model/in_sample/xy"),
+  ggplot2::ggsave(image_name, pp, path = here::here("figures", "fit_model_horizontal", "out_sample", "xy"),
                   width = 20, height = 16, units = "cm")
   
   pb$tick()$print()
@@ -269,7 +268,7 @@ amplitude_dat <- plyr::ddply(.data = df_sub, .variables = c("id_ppt", "id_img"),
 })
 
 # calculate amplitudes (distances of predictions for the next fixation from the observed fixation)
-# xy_rep <- subset(xy_rep, (iter %% 100) == 0)
+#xy_rep <- subset(xy_rep, (iter %% 100) == 0)
 xy_rep <- dplyr::full_join(xy_rep, dplyr::select(df_sub, obs, id_ppt, id_img))
 
 amplitude_pred <- plyr::ddply(.data = df_sub, .variables = c("id_ppt", "id_img", "obs"), .fun = function(d){
@@ -325,7 +324,7 @@ p2 <- ggplot2::ggplot(amplitude_dat, ggplot2::aes(x = distance)) +
 p1_2 <- p1 + p2
 p1_2
 
-ggplot2::ggsave(filename = "amplitude.jpg", path = here::here("figures", "fit_model", "in_sample"),
+ggplot2::ggsave(filename = "amplitude.jpg", path = here::here("figures", "fit_model_horizontal", "out_sample"),
                 plot = p1_2, width = 8, height = 4)
 
 pb <- dplyr::progress_estimated(n = dplyr::n_distinct(df_sub$id_img))
@@ -363,7 +362,7 @@ for(img in unique(df_sub$id_img)){
   p1_2 <- p1 + p2
   p1_2
   
-  ggplot2::ggsave(filename = image_name, plot = p1_2, path = here::here("figures", "fit_model", "in_sample", "amplitude"), 
+  ggplot2::ggsave(filename = image_name, plot = p1_2, path = here::here("figures", "fit_model_horizontal", "out_sample", "amplitude"), 
                   width = 8, height = 5)
   
   pb$tick()$print()
@@ -425,7 +424,7 @@ p1 <- ggplot2::ggplot(angle_dat, ggplot2::aes(x = angle, y = ..density..)) +
   ggplot2::theme_void() +
   ggplot2::theme(axis.text.x = ggplot2::element_text(size = 12))
 
-ggplot2::ggsave(filename = "angle.jpg", plot = p1, path = here::here("figures", "fit_model", "in_sample"), 
+ggplot2::ggsave(filename = "angle.jpg", plot = p1, path = here::here("figures", "fit_model_horizontal", "out_sample"), 
                 width = 5, height = 5)
 
 pb <- dplyr::progress_estimated(n = dplyr::n_distinct(df_sub$id_img))
@@ -445,7 +444,7 @@ for(img in unique(df_sub$id_img)){
     ggplot2::theme_void() +
     ggplot2::theme(axis.text.x = ggplot2::element_text(size = 12))
   
-  ggplot2::ggsave(filename = image_name, plot = p1, path = here::here("figures", "fit_model", "in_sample", "angle"), 
+  ggplot2::ggsave(filename = image_name, plot = p1, path = here::here("figures", "fit_model_horizontal", "out_sample", "angle"), 
                   width = 5, height = 5)
   
   pb$tick()$print()

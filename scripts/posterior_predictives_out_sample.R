@@ -22,7 +22,7 @@ summary_pars <- summary(fit)$summary
 source(here::here("R", "colours.R"))
 source(here::here("R", "load_image.R"))
 # create list from data to pass to Stan
-df_sub <- subset(df, train)
+df_sub <- subset(df, !train)
 df_sub <- dplyr::mutate(df_sub, obs = 1:nrow(df_sub))
 
 stan_data <- list(
@@ -47,8 +47,8 @@ stan_data <- list(
   log_lik_saliency  = df_sub$log_lik_saliency,
   max_neighbors     = ncol(saliency_log),
   N_neighbors       = df_sub$n_neighbors,
-  mean_sq_distances = mean_sq_distances[df$train,,drop=FALSE],
-  saliency_log      = saliency_log     [df$train,,drop=FALSE],
+  mean_sq_distances = mean_sq_distances[!df$train,,drop=FALSE],
+  saliency_log      = saliency_log     [!df$train,,drop=FALSE],
   
   N_pix             = max(saliency_normalized$idx),
   half_width_pixel  = 0.5 * 800 / max(saliency_normalized$row),
@@ -75,8 +75,8 @@ mcmc <- mcmc %>% dplyr::sample_n(size = 40) # generate 100 predictives for every
 posterior_predictives <- rstan::gqs(gqs_model, data = stan_data, draws = mcmc)
 
 rm(fit, mcmc, stan_data, saliency_log) # unload memory a little
-save(posterior_predictives, file = here::here("saves", "posterior_predictives_in_sample.Rdata"))
-load(here::here("saves", "posterior_predictives_in_sample.Rdata"))
+save(posterior_predictives, file = here::here("saves", "posterior_predictives_out_sample.Rdata"))
+load(here::here("saves", "posterior_predictives_out_sample.Rdata"))
 
 mcmc_pred <- as.data.frame(posterior_predictives)
 
@@ -124,7 +124,7 @@ p2 <- ggplot2::ggplot(df_sub, ggplot2::aes(x = duration)) +
 p1_2 <- p1 + p2
 p1_2
 
-ggplot2::ggsave(filename = "fixation_durations.jpg", path = here::here("figures", "fit_model", "in_sample"),
+ggplot2::ggsave(filename = "fixation_durations.jpg", path = here::here("figures", "fit_model", "out_sample"),
                 plot = p1_2, width = 8, height = 4)
 
 # X and Y coordinates checks ----
@@ -251,7 +251,7 @@ for(img in unique(df_sub$id_img)){
   pp <- pp_1 + pp_fac + pp_2 + pp_3 + patchwork::plot_layout(ncol = 2)
   
   # save
-  ggplot2::ggsave(image_name, pp, path = here::here("figures/fit_model/in_sample/xy"),
+  ggplot2::ggsave(image_name, pp, path = here::here("figures/fit_model/out_sample/xy"),
                   width = 20, height = 16, units = "cm")
   
   pb$tick()$print()
@@ -265,7 +265,7 @@ amplitude_dat <- plyr::ddply(.data = df_sub, .variables = c("id_ppt", "id_img"),
   .next <- 2:nrow(d) 
   new_d <- data.frame(id_ppt = d$id_ppt[.prev], id_img = d$id_img[.prev],
                       distance = sqrt( (d$x[.prev] - d$x[.next])^2 + (d$y[.prev] - d$y[.next])^2 )
-                      )
+  )
 })
 
 # calculate amplitudes (distances of predictions for the next fixation from the observed fixation)
@@ -325,7 +325,7 @@ p2 <- ggplot2::ggplot(amplitude_dat, ggplot2::aes(x = distance)) +
 p1_2 <- p1 + p2
 p1_2
 
-ggplot2::ggsave(filename = "amplitude.jpg", path = here::here("figures", "fit_model", "in_sample"),
+ggplot2::ggsave(filename = "amplitude.jpg", path = here::here("figures", "fit_model", "out_sample"),
                 plot = p1_2, width = 8, height = 4)
 
 pb <- dplyr::progress_estimated(n = dplyr::n_distinct(df_sub$id_img))
@@ -363,7 +363,7 @@ for(img in unique(df_sub$id_img)){
   p1_2 <- p1 + p2
   p1_2
   
-  ggplot2::ggsave(filename = image_name, plot = p1_2, path = here::here("figures", "fit_model", "in_sample", "amplitude"), 
+  ggplot2::ggsave(filename = image_name, plot = p1_2, path = here::here("figures", "fit_model", "out_sample", "amplitude"), 
                   width = 8, height = 5)
   
   pb$tick()$print()
@@ -384,7 +384,7 @@ angle_dat <- plyr::ddply(.data = df_sub, .variables = c("id_ppt", "id_img"), .fu
   
   new_d <- data.frame(id_ppt = d$id_ppt[.prev], id_img = d$id_img[.prev],
                       angle = atan2(y, x)
-                      )
+  )
   
   return(new_d)
 })
@@ -425,7 +425,7 @@ p1 <- ggplot2::ggplot(angle_dat, ggplot2::aes(x = angle, y = ..density..)) +
   ggplot2::theme_void() +
   ggplot2::theme(axis.text.x = ggplot2::element_text(size = 12))
 
-ggplot2::ggsave(filename = "angle.jpg", plot = p1, path = here::here("figures", "fit_model", "in_sample"), 
+ggplot2::ggsave(filename = "angle.jpg", plot = p1, path = here::here("figures", "fit_model", "out_sample"), 
                 width = 5, height = 5)
 
 pb <- dplyr::progress_estimated(n = dplyr::n_distinct(df_sub$id_img))
@@ -445,7 +445,7 @@ for(img in unique(df_sub$id_img)){
     ggplot2::theme_void() +
     ggplot2::theme(axis.text.x = ggplot2::element_text(size = 12))
   
-  ggplot2::ggsave(filename = image_name, plot = p1, path = here::here("figures", "fit_model", "in_sample", "angle"), 
+  ggplot2::ggsave(filename = image_name, plot = p1, path = here::here("figures", "fit_model", "out_sample", "angle"), 
                   width = 5, height = 5)
   
   pb$tick()$print()
