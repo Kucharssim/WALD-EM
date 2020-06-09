@@ -1,12 +1,11 @@
 Data Preparation
 ================
 Simon Kucharsky
-2020-04-22
+2020-06-09
 
 ## Eye movement data
 
-The eye movement data comes from
-(<span class="citeproc-not-found" data-reference-id="Renswoude">**???**</span>)
+The eye movement data comes from Renswoude et al. (2019)
 <https://osf.io/dp245>, and is based on the stimulus materials provided
 in Xu et al. (2014).
 
@@ -313,7 +312,15 @@ save(df, mean_sq_distances, saliency_log, saliency_normalized, image_key, object
 
 <div id="refs" class="references hanging-indent">
 
-<div id="ref-Xu2014beyond">
+<div id="ref-renswoude2019object_familiarity">
+
+Renswoude, D. R. van, Voorvaart, R. E., Berg, L. van den, Raijmakers, M.
+E., & Visser, I. (2019). Object familiarity influences infant gaze
+control during free scene viewing. *Manuscript in Preparation*.
+
+</div>
+
+<div id="ref-xu2014beyond">
 
 Xu, J., Jiang, M., Wang, S., Kankanhalli, M. S., & Zhao, Q. (2014).
 Predicting human gaze beyond pixels. *Journal of Vision*, *14*(1),
