@@ -60,21 +60,21 @@ stan_data <- list(
 )
 
 
-gqs_model <- rstan::stan_model(here::here("stan", "gqs_objects_central_distance_saliency_horizontal.stan"))
-
-mcmc <- as.data.frame(fit)
-mcmc <- mcmc %>% dplyr::select(sigma_center, sigma_distance, scale_obj, kappa,
-                               dplyr::starts_with("weights"), 
-                               dplyr::starts_with("z_weights_obj"),
-                               dplyr::starts_with("log_weights"),
-                               dplyr::starts_with("alpha"), 
-                               dplyr::starts_with("sigma_attention"))
-mcmc <- mcmc %>% dplyr::sample_n(size = 40) # generate 40 predictives for every data point
-
-posterior_predictives <- rstan::gqs(gqs_model, data = stan_data, draws = mcmc)
-
-rm(fit, mcmc, stan_data, saliency_log) # unload memory a little
-save(posterior_predictives, file = here::here("saves", "posterior_predictives_out_sample_horizontal.Rdata"))
+# gqs_model <- rstan::stan_model(here::here("stan", "gqs_objects_central_distance_saliency_horizontal.stan"))
+# 
+# mcmc <- as.data.frame(fit)
+# mcmc <- mcmc %>% dplyr::select(sigma_center, sigma_distance, scale_obj, kappa,
+#                                dplyr::starts_with("weights"), 
+#                                dplyr::starts_with("z_weights_obj"),
+#                                dplyr::starts_with("log_weights"),
+#                                dplyr::starts_with("alpha"), 
+#                                dplyr::starts_with("sigma_attention"))
+# mcmc <- mcmc %>% dplyr::sample_n(size = 40) # generate 40 predictives for every data point
+# 
+# posterior_predictives <- rstan::gqs(gqs_model, data = stan_data, draws = mcmc)
+# 
+# rm(fit, mcmc, stan_data, saliency_log) # unload memory a little
+# save(posterior_predictives, file = here::here("saves", "posterior_predictives_out_sample_horizontal.Rdata"))
 load(here::here("saves", "posterior_predictives_out_sample_horizontal.Rdata"))
 
 mcmc_pred <- as.data.frame(posterior_predictives)
