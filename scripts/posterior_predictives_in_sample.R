@@ -382,8 +382,10 @@ angle_dat <- plyr::ddply(.data = df_sub, .variables = c("id_ppt", "id_img"), .fu
   x <- d$x[.next] - d$x[.prev]
   y <- d$y[.next] - d$y[.prev]
   
+  # calculate angles
+  # do not forget: y axis is flipped in eye-tracking data, that's why we reverse the y components of the saccade vector 
   new_d <- data.frame(id_ppt = d$id_ppt[.prev], id_img = d$id_img[.prev],
-                      angle = atan2(y, x)
+                      angle = atan2(-y, x)
                       )
   
   return(new_d)
@@ -402,12 +404,14 @@ angle_pred <- plyr::ddply(.data = df_sub, .variables = c("id_ppt", "id_img", "ob
   if(n_row == 0){
     return(data.frame(id_ppt=integer(), id_img=integer(), angle=numeric()))
   } else{
+    # calculate angles
+    # do not forget: y axis is flipped in eye-tracking data, that's why we reverse the y components of the saccade vector 
     x <- pred$x - x_d
     y <- pred$y - y_d
     out <- data.frame(
       id_ppt = rep(ppt_d[1], n_row),
       id_img = rep(img_d[1], n_row),
-      angle  = atan2(y, x)
+      angle  = atan2(-y, x)
     )
     
     return(out)
@@ -415,15 +419,15 @@ angle_pred <- plyr::ddply(.data = df_sub, .variables = c("id_ppt", "id_img", "ob
 }, .progress = "text")
 
 p1 <- ggplot2::ggplot(angle_dat, ggplot2::aes(x = angle, y = ..density..)) + 
-  ggplot2::geom_histogram(col = cols_custom$dark_teal, fill = cols_custom$mid_teal, alpha = 0.8) +
-  ggplot2::geom_histogram(data=angle_pred, col = cols_custom$dark, fill = cols_custom$mid, alpha = 0.8) +
-  ggplot2::coord_polar(start = -0.5*pi) + 
-  ggplot2::scale_x_continuous(limits = c(-pi, pi), 
+  ggplot2::geom_histogram(col = cols_custom$dark_teal, fill = cols_custom$mid_teal, alpha = 0.8, bins = 32) +
+  ggplot2::geom_histogram(data=angle_pred, col = cols_custom$dark, fill = cols_custom$mid, alpha = 0.8, bins = 32) +
+  ggplot2::coord_polar(start = 0.5*pi, direction = -1) + 
+  ggplot2::scale_x_continuous(limits = c(-pi, pi),
                               breaks = seq(-0.5, 1, by = 0.5)*pi,
                               labels = c("down", "right", "up", "left")) +
   ggplot2::scale_y_continuous(expand = c(0, 0.025)) +
   ggplot2::theme_void() +
-  ggplot2::theme(axis.text.x = ggplot2::element_text(size = 12))
+  ggplot2::theme(axis.text.x = ggplot2::element_text(size = 15))
 
 ggplot2::ggsave(filename = "angle.jpg", plot = p1, path = here::here("figures", "fit_model", "in_sample"), 
                 width = 5, height = 5)
@@ -435,15 +439,15 @@ for(img in unique(df_sub$id_img)){
   angle_pred_sub <- subset(angle_pred, id_img == img)
   
   p1 <- ggplot2::ggplot(angle_dat_sub, ggplot2::aes(x = angle, y = ..density..)) + 
-    ggplot2::geom_histogram(col = cols_custom$dark_teal, fill = cols_custom$mid_teal, alpha = 0.8) +
-    ggplot2::geom_histogram(data=angle_pred_sub, col = cols_custom$dark, fill = cols_custom$mid, alpha = 0.8) +
-    ggplot2::coord_polar(start = -0.5*pi) + 
-    ggplot2::scale_x_continuous(limits = c(-pi, pi), 
+    ggplot2::geom_histogram(col = cols_custom$dark_teal, fill = cols_custom$mid_teal, alpha = 0.8, bins = 32) +
+    ggplot2::geom_histogram(data=angle_pred_sub, col = cols_custom$dark, fill = cols_custom$mid, alpha = 0.8, bins = 32) +
+    ggplot2::coord_polar(start = 0.5*pi, direction = -1) + 
+    ggplot2::scale_x_continuous(limits = c(-pi, pi),
                                 breaks = seq(-0.5, 1, by = 0.5)*pi,
                                 labels = c("down", "right", "up", "left")) +
     ggplot2::scale_y_continuous(expand = c(0, 0.025)) +
     ggplot2::theme_void() +
-    ggplot2::theme(axis.text.x = ggplot2::element_text(size = 12))
+    ggplot2::theme(axis.text.x = ggplot2::element_text(size = 15))
   
   ggplot2::ggsave(filename = image_name, plot = p1, path = here::here("figures", "fit_model", "in_sample", "angle"), 
                   width = 5, height = 5)
