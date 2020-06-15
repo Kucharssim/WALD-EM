@@ -355,7 +355,7 @@ for(img in unique(df_sub$id_img)){
     # plot exdf of predictions
     ggplot2::stat_ecdf(data = amplitude_pred_sub, mapping = ggplot2::aes(x = distance), 
                        col = cols_custom$dark, size = 1.5) +
-    ggplot2::xlab("Distance (sec)") +
+    ggplot2::xlab("Distance (pixels)") +
     ggplot2::ylab("Cumulative probability") + 
     ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0.05, 0.1), add = c(0, 0))) +
     ggplot2::scale_y_continuous(expand = ggplot2::expansion(mult = c(0, 0), add = c(0, 0)))
