@@ -1,6 +1,5 @@
 library(here)
 library(knitr)
-library(stringr)
 
 get_packages <- function(file){
   lines <- readLines(file, warn = FALSE)
@@ -21,6 +20,7 @@ files <- c(files,
 # get pacakges
 packages <- lapply(files, get_packages)
 packages <- unique(unlist(packages))
+
 
 for (p in packages) library(p, character.only = TRUE) 
 sink(file = here::here("sessionInfo"))
