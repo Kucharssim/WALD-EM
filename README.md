@@ -26,7 +26,7 @@ Additionally, we calculated saliency maps of images created by Xu, et al. (2014)
 
 2. [`data/`](data/) folder contains data that are used in this project.
 	1. [`saliency/`](data/saliency/) folder contains all 700 stimuli from the repository by Xu, et al. (2014) ([https://github.com/NUS-VIP/predicting-human-gaze-beyond-pixels](https://github.com/NUS-VIP/predicting-human-gaze-beyond-pixels)) converted to saliency maps and saved as `.jpg` files. The folder contains [`get_saliency.py`](data/saliency/get_saliency.py) script that should (provided necessary dependencies are included, see above) reproduce the output.
-	2. [`cleaned_data.Rdata`](data/cleanded_data.Rdata) collects a work space with data objects that are otherwise shared in form of `.csv` files in the [`data/`](data/) folder.
+	2. [`cleaned_data.Rdata`](data/cleaned_data.Rdata) collects a work space with data objects that are otherwise shared in form of `.csv` files in the [`data/`](data/) folder.
 
 3. [`documents/`](documents/) folder contains files that provide additional background information about the model, including explanations of helper functions, implementation of the model in the Stan modeling language, etc. The aim of this folder is to collect all possible information that is useful for adapting the model to your own needs rather than simply reruning the code in this repository.
 
