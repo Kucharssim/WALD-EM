@@ -12,7 +12,7 @@ Running the model requires two crucial dependencies:
 2. Stan and R package rstan. Visit [https://mc-stan.org/](https://mc-stan.org/) for more information, installation instruction, manual, and tutorials.
 
 
-To reproduce all code and output, there are additional dependencies, mostly in the form of additional R packages. The list of R packages (and their versions) is available in the [sessionInfo](sessionInfo.txt) file.
+To reproduce all code and output, there are additional dependencies, mostly in the form of additional R packages. The list of R packages (and their versions) is available in the [sessionInfo](sessionInfo) file.
 
 Additionally, we calculated saliency maps of images created by Xu, et al. (2014) stored at [https://github.com/NUS-VIP/predicting-human-gaze-beyond-pixels](https://github.com/NUS-VIP/predicting-human-gaze-beyond-pixels) using the Python (version 3.7.7, [https://www.python.org/](https://www.python.org/)) scripts originally created by Mayo Yamasaki [https://github.com/mayoyamasaki/saliency-map](https://github.com/mayoyamasaki/saliency-map) and rewritten by Kohki Yamagiwa for Python 3 [https://github.com/tamanobi/saliency-map](https://github.com/tamanobi/saliency-map). However using these resources is not strictly necessary to produce the main output as the saliency maps were saved in folder [data/saliency](data/saliency/).
 
