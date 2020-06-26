@@ -16,10 +16,10 @@ other attached packages:
  [1] OpenImageR_1.1.6     gtools_3.8.2         plotrix_3.7-7       
  [4] Rcpp_1.0.4.9         ggforce_0.3.1        imager_0.42.1       
  [7] magrittr_1.5         patchwork_1.0.0      tidybayes_2.0.3     
-[10] pracma_2.2.9         forcats_0.5.0        dplyr_0.8.5         
-[13] purrr_0.3.4          readr_1.3.1          tidyr_1.0.2         
-[16] tibble_3.0.1         tidyverse_1.3.0      rstan_2.19.3        
-[19] ggplot2_3.3.0        StanHeaders_2.21.0-5 stringr_1.4.0       
+[10] pracma_2.2.9         rstan_2.19.3         StanHeaders_2.21.0-5
+[13] forcats_0.5.0        stringr_1.4.0        dplyr_0.8.5         
+[16] purrr_0.3.4          readr_1.3.1          tidyr_1.0.2         
+[19] tibble_3.0.1         ggplot2_3.3.0        tidyverse_1.3.0     
 [22] knitr_1.28           here_0.1            
 
 loaded via a namespace (and not attached):

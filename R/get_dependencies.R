@@ -1,5 +1,6 @@
 library(here)
 library(knitr)
+library(tidyverse)
 
 get_packages <- function(file){
   lines <- readLines(file, warn = FALSE)
@@ -21,6 +22,9 @@ files <- c(files,
 packages <- lapply(files, get_packages)
 packages <- unique(unlist(packages))
 
+pkgdata <- tibble::tibble(package = packages, 
+                          version = sapply(packages, function(p) paste(packageVersion(p), collapse = ".")))
+readr::write_csv(pkgdata, here::here("packages.csv"))
 
 for (p in packages) library(p, character.only = TRUE) 
 sink(file = here::here("sessionInfo"))
