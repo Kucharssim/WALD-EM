@@ -4,8 +4,10 @@ Dynamic Model of Eye Movements
 ![](figures/fit_model/in_sample/xy/1251.jpg)
 
 This repository provides code and additional materials associated with
-the article \> Kucharský, Š., van Renswoude, D., Raijmakers, M.E.J., &
-Visser, I. (2020). Dynamic model of eye movements (provisional title).
+the article
+
+> Kucharský, Š., van Renswoude, D., Raijmakers, M.E.J., & Visser, I.
+> (2020). Dynamic model of eye movements (provisional title).
 
 ### Getting started
 
@@ -20,7 +22,20 @@ Running the model requires two crucial dependencies:
 
 To reproduce all code and output, there are additional dependencies,
 mostly in the form of additional R packages. The list of R packages (and
-their versions) is available in the [sessionInfo](sessionInfo) file.
+their versions) is available in the [packages.csv](packages.csv) file,
+and the full R environment listed in [sessionInfo](sessionInfo) file.
+
+To install all necessary R packages, simply run
+
+    packages <- read.csv("packages.csv", stringsAsFactors = FALSE)
+    install.packages(packages$package)
+
+Or to get the packages in their specified versions
+
+    # install.package("devtools")
+    library(devtools)
+    packages <- read.csv("packages.csv", stringsAsFactors = FALSE)
+    devtools::install(pkg = packages$package, version = packages$version)
 
 Additionally, we calculated saliency maps of images created by Xu, et
 al. (2014) stored at
