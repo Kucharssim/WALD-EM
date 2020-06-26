@@ -37,8 +37,8 @@ Or to get the packages in their specified versions
     packages <- read.csv("packages.csv", stringsAsFactors = FALSE)
     devtools::install(pkg = packages$package, version = packages$version)
 
-Additionally, we calculated saliency maps of images created by Xu, et
-al. (2014) stored at
+Additionally, we calculated saliency maps of images created by
+xu2014beyond stored at
 <https://github.com/NUS-VIP/predicting-human-gaze-beyond-pixels> using
 Python (version 3.7.7, <https://www.python.org/>). We used functions
 that compute saliency of images that were originally created by [Mayo
@@ -63,9 +63,11 @@ the main output as the saliency maps were saved in folder
         present in the [`helpers/`](stan/helpers) folder.
     2.  
 2.  [`data/`](data/) folder contains data that are used in this project.
+    The eye-tracking data are associated with the article by Renswoude
+    et al. (2019) who used the stimli materials from Xu et al. (2014).
     
     1.  [`saliency/`](data/saliency/) folder contains all 700 stimuli
-        from the repository by Xu, et al. (2014)
+        from the repository by xu2014beyond
         (<https://github.com/NUS-VIP/predicting-human-gaze-beyond-pixels>)
         converted to saliency maps and saved as `.jpg` files. The folder
         contains [`get_saliency.py`](data/saliency/get_saliency.py)
@@ -126,3 +128,29 @@ the main output as the saliency maps were saved in folder
         checks.
     8.  [`model_comparison.R`](scripts/model_comparison.R) is a script
         that compares the two models to each other.
+
+6.  [`saves/`](saves/) folder contains some R objects that were saved to
+    make some output reusable (e.g., so that R scripts that depend on
+    other’s scripts output can be run independently).
+
+## References
+
+<div id="refs" class="references hanging-indent">
+
+<div id="ref-renswoude2019object_familiarity">
+
+Renswoude, D. R. van, Voorvaart, R. E., Berg, L. van den, Raijmakers, M.
+E., & Visser, I. (2019). Object familiarity influences infant gaze
+control during free scene viewing. *Manuscript in Preparation*.
+
+</div>
+
+<div id="ref-xu2014beyond">
+
+Xu, J., Jiang, M., Wang, S., Kankanhalli, M. S., & Zhao, Q. (2014).
+Predicting human gaze beyond pixels. *Journal of Vision*, *14*(1),
+28–28. <https://doi.org/10.1167/14.1.28>
+
+</div>
+
+</div>
