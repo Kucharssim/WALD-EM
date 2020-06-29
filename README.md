@@ -133,9 +133,46 @@ the main output as the saliency maps were saved in folder
     make some output reusable (e.g., so that R scripts that depend on
     other’s scripts output can be run independently).
 
+7.  [`figures/`](figures/) folder contains figures that we generated for
+    the article, or as part of the model diagnostics. The folder itself
+    has some `.R` scripts which generate figures that are used in the
+    article for illustration. There are 2 additional subfolders:
+    
+    1.  [`fit_model/`](figures/fit_model) contains plots associated with
+        the initial model containing four factors.
+    2.  [`fit_model_horizontal/`](figures/fit_model_horizontal) contains
+        plots associated with the extended model containing five
+        factors.
+    
+    Each of these two subfolders have the following structure:
+    
+    1.  [`in_sample`](figures/fit_model/in_sample) contains the
+        posterior predictives on the data that were used to fit the
+        model (aka posterior “retrodictives”).
+    2.  [`out_sample`](figures/fit_model/out_sample) contains the
+        posterior predictives on the data that were used for
+        cross-validation.
+    3.  [`par_diagnostics`](figures/fit_model/par_diagnostics) contains
+        diagnostic plots of the MCMC chains.
+
+NB. The paths to files and folders are defined using the package `here`
+(Müller, 2017), and rely on the presence of the file
+[`DMEM.Rproj`](DMEM.Rproj) or [`.here`](.here) in the root of this
+repository (i.e., the paths are relative to these to files, and their
+location is assumed to be in the root of the repository). Provided at
+least one of these files is present, and the working directory is
+anywhere inside of this repository, the paths should “just work”.
+
 ## References
 
 <div id="refs" class="references hanging-indent">
+
+<div id="ref-R-here">
+
+Müller, K. (2017). *Here: A simpler way to find your files*.
+<https://CRAN.R-project.org/package=here>
+
+</div>
 
 <div id="ref-renswoude2019object_familiarity">
 
