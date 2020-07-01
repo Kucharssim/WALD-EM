@@ -11,14 +11,14 @@ csl: "`r here::here('apa.csl')`"
 
 This file validates the implementation of the direction bias (see `stan/helpers/direction_bias_lpdf.stan`).
 
-```{r}
+```{r, results='hide', warning=FALSE}
 library(rstan)
 source(here::here("R", "expose_helpers_stan.R"))
 ```
 
 ## Fitting a mixture of von Mises distributions 
 
-The following checks that the density function of the von Mises mixture is implemented correctly. Here, we simulate data from two mixture components with means fixed to 0 and $\pi$, equal concentrations $\kappa = 8$, and equal mixture weights.
+The following code checks that the density function of the von Mises mixture is implemented correctly. Here, we simulate data from two mixture components with means fixed to 0 and $\pi$, equal concentrations $\kappa = 8$, and equal mixture weights.
 
 ```{r}
 mvonmises <- function(x, weights, mu, kappa){
@@ -33,9 +33,17 @@ hist(theta, breaks = seq(-pi, pi, length.out = 50), freq = FALSE, main = "von Mi
 curve(mvonmises(x = x, weights = c(0.5, 0.5), mu = c(0, pi), kappa = c(8, 8)), from = -pi, to = pi, add = TRUE)
 ```
 
-Below we fit the model to see whether we recover the parameter $\kappa$:
-```{r echo=TRUE}
-stan_model <- rstan::stan_model(here::here("stan", "examples", "mixture_von_mises_single.stan"), isystem = here::here())
+Below we fit the model to see whether we recover the parameter $\kappa$. The model is relatively simple, utilizing the `mixture_von_mises_lpdf` helper function:
+
+```{r}
+writeLines(readLines(here::here("stan", "examples", "mixture_von_mises_single.stan")))
+```
+
+The code below fits the model (estimates the parameter $\kappa$):
+
+```{r}
+stan_model <- rstan::stan_model(here::here("stan", "examples", "mixture_von_mises_single.stan"),
+                                isystem = here::here(), verbose=FALSE)
 
 stan_data  <- list(N_obs = length(theta), angle = theta, mu_angle = c(0, pi))
 
@@ -44,15 +52,17 @@ stan_fit   <- rstan::sampling(stan_model, stan_data, chains = 4, cores = 4, warm
 stan_fit
 ```
 
-Which (as it seems) we do.
+And it seems that we were sucessfull in estimating the parameter.
 
 ## Fitting a direction bias
+
+Here, we check whether we can fit a direction bias model. Specifically, in here, we are not specifying the model for fixation durations, as we do not expect that direction bias (such as horizontal bias) would have any impact on it. 
 
 First, we will simulate single data following this initial setup:
 
 1) The screen has dimensions `800` pixels in horizontal direction and `600` pixels in vertical direction.
 
-2) The first fixation is not random and fixed to the center of the screen (`x = 400`, `y = 300`)
+2) The first fixation is not random and thus fixed to the center of the screen (`x = 400`, `y = 300`)
 
 And the following data generative meachanism of each successive fixation:
 
@@ -66,9 +76,10 @@ And the following data generative meachanism of each successive fixation:
 
 5) The angle drawn in 1) and the number drawn in 4) together specify the saccade, which determine the displacement ofo the current fixation to the previous fixation.
 
+The code below simulates and plots the data.
+
 ```{r}
 xy <- matrix(NA, nrow = 200, ncol = 2)
-
 
 for(i in 1:nrow(xy)){
   x <- ifelse(i == 1, 400, xy[i-1, 1])
@@ -80,14 +91,25 @@ plot(xy, pch = 19, xlab = "x", ylab = "y")
 lines(xy)
 ```
 
+Here, we fit the model to the data. The model is more complex than the one above, since it needs to calculate additional information from the data. Specifically, in the `transformed data` block, we calculate the saccade `angle` from the x and y coordinates of fixations, the saccade lengths (in this script called the `radius`), and the distance to the edge of the screen given the `angle` of the saccade and the x and y coordinates of the outgoing fixation location. These variables are needed to calculate to get the proper density `direction_bias_lpdf()` of the random variables `saccade = (angle, lenght)`, where we assume that `angle` is distributed according to a mixture of von Mises, and `length` (radius) is distributed uniformly between the current location and the edge of the screen.
+
 ```{r}
-stan_model <- rstan::stan_model(here::here("stan", "examples", "direction_bias_single.stan"), isystem = here::here())
+writeLines(readLines(here::here("stan", "examples", "direction_bias_single.stan")))
+```
+
+
+The code below fits the model to estimate the parameter $\kappa$ (= 8),
+
+```{r}
+stan_model <- rstan::stan_model(here::here("stan", "examples", "direction_bias_single.stan"),
+                                isystem = here::here(), verbose = FALSE)
 
 stan_data  <- list(N_obs = nrow(xy), x = xy[,1], y = xy[,2])
 
-stan_fit   <- rstan::sampling(stan_model, stan_data, chains = 4, cores = 4, warmup = 500, iter = 1000, refresh = 250)
+stan_fit   <- rstan::sampling(stan_model, stan_data, chains = 4, cores = 4, warmup = 500, iter = 1000, refresh = 0)
 
 print(stan_fit)
 ```
 
 
+which seems to work.
