@@ -1,11 +1,12 @@
 ---
 title: "Helper functions"
-author: "Simon Kucharsky"
+author: "Šimon Kucharský"
 date: "`r Sys.Date()`"
 output: 
   rmarkdown::github_document:
     pandoc_args: --webtex
-bibliography: "`r here::here('bibliography.bib')`"
+    toc: true
+bibliography: ["`r here::here('bibliography.bib')`", "`r here::here('packages.bib')`"]
 csl: "`r here::here('apa.csl')`"
 ---
 

@@ -1,7 +1,20 @@
 Helper functions
 ================
-Simon Kucharsky
+Šimon Kucharský
 2020-07-01
+
+  - [Common features of the Stan
+    files](#common-features-of-the-stan-files)
+      - [Wald distribution](#wald-distribution)
+      - [Truncated normal distribution](#truncated-normal-distribution)
+      - [Log density of a gaussian
+        mixture](#log-density-of-a-gaussian-mixture)
+      - [Common functions to compute the drift rate
+        ![\\nu](https://latex.codecogs.com/png.latex?%5Cnu
+        "\\nu")](#common-functions-to-compute-the-drift-rate-nu)
+      - [Saliency](#saliency)
+      - [Direction bias](#direction-bias)
+      - [References](#references)
 
 # Common features of the Stan files
 
