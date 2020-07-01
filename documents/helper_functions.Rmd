@@ -14,7 +14,7 @@ csl: "`r here::here('apa.csl')`"
 All of the models we implemented share some common common computations, some of which needed to be implemented by specifying custom functions in Stan. These functions are loaded in each of the model's file by including the `load_functions.stan` file in the function block. Specifically, placing `#include stan/helpers/load_functions.stan` inside of `functions{}` block in a `.stan` file makes accessible functions defined in the following files:
 
 
-```{r echo=FALSE}
+```{r}
 writeLines(readLines(here::here("stan", "helpers", "load_functions.stan")))
 ```
 
@@ -95,7 +95,7 @@ $$
 
 which is the "information" available along the x dimension given the fixation at location $s_x$, the attention window width $\sigma_a$, and the location and spread of some factor $\mu_x$ and $\sigma_x$.
 
-```{r echo=FALSE}
+```{r}
 writeLines(readLines(here::here("stan", "helpers", "log_integral_attention_1d.stan")))
 ```
 
@@ -107,7 +107,7 @@ $$
 
 which basically combines `log_integral_attention_1d()` for x and y dimension separately for each "factor", and weights them by their `weights`.
 
-```{r echo=FALSE}
+```{r}
 writeLines(readLines(here::here("stan", "helpers", "log_integral_attention_mixture_2d.stan")))
 ```
 

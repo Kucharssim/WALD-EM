@@ -13,6 +13,10 @@ Specifically, placing `#include stan/helpers/load_functions.stan` inside
 of `functions{}` block in a `.stan` file makes accessible functions
 defined in the following files:
 
+``` r
+writeLines(readLines(here::here("stan", "helpers", "load_functions.stan")))
+```
+
     ## #include stan/helpers/wald_lpdf.stan
     ## #include stan/helpers/wald_rng.stan
     ## #include stan/helpers/trunc_normal_lpdf.stan
@@ -243,6 +247,10 @@ fixation at location ![s\_x](https://latex.codecogs.com/png.latex?s_x
 ![\\sigma\_x](https://latex.codecogs.com/png.latex?%5Csigma_x
 "\\sigma_x").
 
+``` r
+writeLines(readLines(here::here("stan", "helpers", "log_integral_attention_1d.stan")))
+```
+
     ##   real log_integral_attention_1d(real center_attention, real center_lambda, real width_attention, real width_lambda){
     ##     real var_a  = square(width_attention);
     ##     real var_l  = square(width_lambda);
@@ -265,6 +273,10 @@ dy,&#10;](https://latex.codecogs.com/png.latex?%0A%5Cint%5Cint%20%5Clambda%28x%2
 which basically combines `log_integral_attention_1d()` for x and y
 dimension separately for each “factor”, and weights them by their
 `weights`.
+
+``` r
+writeLines(readLines(here::here("stan", "helpers", "log_integral_attention_mixture_2d.stan")))
+```
 
     ##   real log_integral_attention_mixture_2d(real x, real y, vector weights, vector mu_x, vector sigma_x, vector mu_y, vector sigma_y, real width_x, real width_y){
     ##     int K = num_elements(weights);
