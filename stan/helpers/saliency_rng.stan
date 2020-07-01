@@ -7,5 +7,3 @@
     
     return out;
   }
-  
-  

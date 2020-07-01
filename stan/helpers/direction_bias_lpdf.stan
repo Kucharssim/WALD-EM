@@ -19,4 +19,3 @@
     */
     return log_lik_angle - log(dist) - log(r); 
   }
-  
