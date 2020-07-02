@@ -9,8 +9,12 @@ Simon Kucharsky
       - [Model sensitivity](#model-sensitivity)
       - [Posterior predictives](#posterior-predictives)
   - [Contents of examples](#contents-of-examples)
-      - [<span>direction\_bias</span>](#direction_bias)
-      - [<span>direction\_central\_bias</span>](#direction_central_bias)
+      - [Direction (horizontal) bias](#direction-horizontal-bias)
+      - [Direction and Central bias](#direction-and-central-bias)
+      - [Object oriented behavior](#object-oriented-behavior)
+      - [Including saliency](#including-saliency)
+      - [Initial Model](#initial-model)
+      - [Extended Model](#extended-model)
   - [References](#references)
 
 This file serves as a supplement to the article “Dynamic models of eye
@@ -58,14 +62,32 @@ regularities in the data.
 
 # Contents of examples
 
-The [documents](documents/) folder contains some example files that show
-how to build specific versions of the model. They also demonstrate that
-various parts of the model were correctly implemented. Here, we list the
-files and provide short descriptions:
+The [documents](/) folder contains some example files that show how to
+build specific versions of the model. They also demonstrate that various
+parts of the model were correctly implemented. Here, we list the files
+and provide short descriptions. The order of these files in this list is
+not chronological, but rather more or less corresponds to the complexity
+of the content.
 
-## [direction\_bias](documents/direction_bias.md/)
+## Direction (horizontal) bias
 
-## [direction\_central\_bias](documents/direction_central_bias.md)
+[direction\_bias](direction_bias.md)
+
+## Direction and Central bias
+
+[direction\_central\_bias](direction_central_bias.md)
+
+## Object oriented behavior
+
+[object\_oriented\_behavior](object_oriented_behavior.md)
+
+## Including saliency
+
+## Initial Model
+
+[initial\_model](initial_model.md)
+
+## Extended Model
 
 # References
 

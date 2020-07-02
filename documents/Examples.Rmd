@@ -36,11 +36,28 @@ Posterior predictives are a useful tool for assessing the adequacy of the model.
 
 # Contents of examples
 
-The [documents](documents/) folder contains some example files that show how to build specific versions of the model. They also demonstrate that various parts of the model were correctly implemented. Here, we list the files and provide short descriptions:
+The [documents](/) folder contains some example files that show how to build specific versions of the model. They also demonstrate that various parts of the model were correctly implemented. Here, we list the files and provide short descriptions. The order of these files in this list is not chronological, but rather more or less corresponds to the complexity of the content.
 
-## [direction_bias](documents/direction_bias.md/)
+## Direction (horizontal) bias
 
-## [direction_central_bias](documents/direction_central_bias.md)
+[direction_bias](direction_bias.md)
+
+## Direction and Central bias
+
+[direction_central_bias](direction_central_bias.md)
+
+## Object oriented behavior
+
+[object_oriented_behavior](object_oriented_behavior.md)
+
+## Including saliency
+
+
+## Initial Model
+
+[initial_model](initial_model.md)
+
+## Extended Model
 
 
 # References
