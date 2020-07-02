@@ -10,13 +10,17 @@ bibliography: ["`r here::here('bibliography.bib')`", "`r here::here('packages.bi
 csl: "`r here::here('apa.csl')`"
 ---
 
+# Introduction
+
 This file serves as a supplement to the article "Dynamic models of eye movements" and provides step by step explanation of the building and implementation of the modelling framework of the joint distribution of fixation locations and fixation durations.
 
 In this folder, there are additional files that go through specific examples of the model. These examples should provide some guidance in building and implementing such a model. The models are implemented in Stan [@carpenter2017stan] in combination with the R package rstan [@R-rstan].
 
 # Principled Bayesian modeling
 
-Here, we summarise several criteria and approaches we used while building and validating our model, following general reccomendations for Bayesian modeling, see @schad2019principled.
+Here, we summarise several criteria and approaches we used while building and validating our model, following general reccomendations for Bayesian modeling, see @schad2019principled. Although we did not use all these practices at all time, we tried our best. We believe though that our model's implementation is robust. The purpose of these example files is not only to grant access other researchers to our code to help them develop their own model, but also to be more transparent with our model development, and the amount of work that was spent before we even approached analyzing the real data set.
+
+Below, we summarise very briefly here what practices we use here and there. 
 
 ## Prior predictives
 

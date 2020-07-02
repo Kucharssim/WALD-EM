@@ -3,6 +3,7 @@ Examples
 Simon Kucharsky
 2020-07-02
 
+  - [Introduction](#introduction)
   - [Principled Bayesian modeling](#principled-bayesian-modeling)
       - [Prior predictives](#prior-predictives)
       - [Computational faithfullness](#computational-faithfullness)
@@ -16,6 +17,8 @@ Simon Kucharsky
       - [Initial Model](#initial-model)
       - [Extended Model](#extended-model)
   - [References](#references)
+
+# Introduction
 
 This file serves as a supplement to the article “Dynamic models of eye
 movements” and provides step by step explanation of the building and
@@ -32,7 +35,16 @@ Stan (Carpenter et al., 2017) in combination with the R package rstan
 
 Here, we summarise several criteria and approaches we used while
 building and validating our model, following general reccomendations for
-Bayesian modeling, see Schad et al. (2019).
+Bayesian modeling, see Schad et al. (2019). Although we did not use all
+these practices at all time, we tried our best. We believe though that
+our model’s implementation is robust. The purpose of these example files
+is not only to grant access other researchers to our code to help them
+develop their own model, but also to be more transparent with our model
+development, and the amount of work that was spent before we even
+approached analyzing the real data set.
+
+Below, we summarise very briefly here what practices we use here and
+there.
 
 ## Prior predictives
 
