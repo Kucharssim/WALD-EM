@@ -12,7 +12,7 @@ csl: "`r here::here('apa.csl')`"
 
 # Common features of the Stan files
 
-All of the models we implemented share some common common computations, some of which needed to be implemented by specifying custom functions in Stan. These functions are loaded in each of the model's file by including the `load_functions.stan` file in the function block. Specifically, placing `#include stan/helpers/load_functions.stan` inside of `functions{}` block in a `.stan` file makes accessible functions defined in the following files:
+All of the models we implemented share some common common computations, some of which needed to be implemented by specifying custom functions in Stan [@carpenter2017stan]. These functions are loaded in each of the model's file by including the `load_functions.stan` file in the function block. Specifically, placing `#include stan/helpers/load_functions.stan` inside of `functions{}` block in a `.stan` file makes accessible functions defined in the following files:
 
 
 ```{r}

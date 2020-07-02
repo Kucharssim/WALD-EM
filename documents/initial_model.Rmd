@@ -1,0 +1,13 @@
+---
+title: "Initial Model"
+author: "Simon Kucharsky"
+date: "`r Sys.Date()`"
+output: 
+  rmarkdown::github_document:
+    pandoc_args: --webtex
+bibliography: ["`r here::here('bibliography.bib')`", "`r here::here('packages.bib')`"]
+csl: "`r here::here('apa.csl')`"
+---
+
+
+Here, we will provide some more information about the initial model reported in the article. Specifically, here we explain the basic of the model's architecture, and describe additional information (e.g. justification of the priors).

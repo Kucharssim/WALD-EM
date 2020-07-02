@@ -5,17 +5,18 @@ date: "`r Sys.Date()`"
 output: 
   rmarkdown::github_document:
     pandoc_args: --webtex
-bibliography: "`r here::here('bibliography.bib')`"
+    toc: true
+bibliography: ["`r here::here('bibliography.bib')`", "`r here::here('packages.bib')`"]
 csl: "`r here::here('apa.csl')`"
 ---
 
 This file serves as a supplement to the article "Dynamic models of eye movements" and provides step by step explanation of the building and implementation of the modelling framework of the joint distribution of fixation locations and fixation durations.
 
-In this folder, there are additional files that go through specific examples of the model. These examples should provide some guidance in building and implementing such a model. The models are implemented in Stan [@carpenter2017stan] in combination with the R package rstan [@team2016rstan].
+In this folder, there are additional files that go through specific examples of the model. These examples should provide some guidance in building and implementing such a model. The models are implemented in Stan [@carpenter2017stan] in combination with the R package rstan [@R-rstan].
 
 # Principled Bayesian modeling
 
-Here, we summarise several criteria and approaches we used for validating our model, following general reccomendations for Bayesian modeling, see @schad2019principled.
+Here, we summarise several criteria and approaches we used while building and validating our model, following general reccomendations for Bayesian modeling, see @schad2019principled.
 
 ## Prior predictives
 
@@ -31,4 +32,15 @@ We also investigate whether and to what extend are the estimates of the paramate
 
 ## Posterior predictives
 
-## References
+Posterior predictives are a useful tool for assessing the adequacy of the model. Specifically, we can look at whether the model is able to predict specific data points, or whether it captures certain regularities in the data.
+
+# Contents of examples
+
+The [documents](documents/) folder contains some example files that show how to build specific versions of the model. They also demonstrate that various parts of the model were correctly implemented. Here, we list the files and provide short descriptions:
+
+## [direction_bias](documents/direction_bias.md/)
+
+## [direction_central_bias](documents/direction_central_bias.md)
+
+
+# References

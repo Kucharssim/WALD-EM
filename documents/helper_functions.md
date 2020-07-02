@@ -1,7 +1,7 @@
 Helper functions
 ================
 Šimon Kucharský
-2020-07-01
+2020-07-02
 
   - [Common features of the Stan
     files](#common-features-of-the-stan-files)
@@ -20,11 +20,11 @@ Helper functions
 
 All of the models we implemented share some common common computations,
 some of which needed to be implemented by specifying custom functions in
-Stan. These functions are loaded in each of the model’s file by
-including the `load_functions.stan` file in the function block.
-Specifically, placing `#include stan/helpers/load_functions.stan` inside
-of `functions{}` block in a `.stan` file makes accessible functions
-defined in the following files:
+Stan (Carpenter et al., 2017). These functions are loaded in each of the
+model’s file by including the `load_functions.stan` file in the function
+block. Specifically, placing `#include stan/helpers/load_functions.stan`
+inside of `functions{}` block in a `.stan` file makes accessible
+functions defined in the following files:
 
 ``` r
 writeLines(readLines(here::here("stan", "helpers", "load_functions.stan")))
@@ -322,3 +322,16 @@ writeLines(readLines(here::here("stan", "helpers", "saliency_rng.stan")))
 ## Direction bias
 
 ## References
+
+<div id="refs" class="references hanging-indent">
+
+<div id="ref-carpenter2017stan">
+
+Carpenter, B., Gelman, A., Hoffman, M. D., Lee, D., Goodrich, B.,
+Betancourt, M., Brubaker, M., Guo, J., Li, P., & Riddell, A. (2017).
+Stan: A probabilistic programming language. *Journal of Statistical
+Software*, *76*(1).
+
+</div>
+
+</div>
