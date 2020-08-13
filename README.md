@@ -1,4 +1,4 @@
-Dynamic Model of Eye Movements
+WALD-EM: Wald Accumulation for Locations and Durations of Eye Movements
 ================
 
 ![](figures/fit_model/in_sample/xy/1251.jpg)
@@ -6,8 +6,9 @@ Dynamic Model of Eye Movements
 This repository provides code and additional materials associated with
 the article
 
-> Kucharský, Š., van Renswoude, D., Raijmakers, M.E.J., & Visser, I.
-> (2020). Dynamic model of eye movements (provisional title).
+> Kucharský, Š., van Renswoude, D. R., Raijmakers, M. E. J., & Visser,
+> I. (2020, July 17). WALD-EM: Wald Accumulation for Locations and
+> Durations of Eye Movements. <https://doi.org/10.31234/osf.io/2s48r>
 
 ### Getting started
 
@@ -89,7 +90,7 @@ the main output as the saliency maps were saved in folder
 
 2.  [`data/`](data/) folder contains data that are used in this project.
     The eye-tracking data are associated with the article by Renswoude
-    et al. (2019) who used the stimli materials from Xu et al. (2014).
+    et al. (n.d.) who used the stimli materials from Xu et al. (2014).
     
     1.  [`saliency/`](data/saliency/) folder contains all 700 stimuli
         from the repository by xu2014beyond
@@ -202,7 +203,7 @@ Müller, K. (2017). *Here: A simpler way to find your files*.
 <div id="ref-renswoude2019object_familiarity">
 
 Renswoude, D. R. van, Voorvaart, R. E., Berg, L. van den, Raijmakers, M.
-E., & Visser, I. (2019). Object familiarity influences infant gaze
+E. J., & Visser, I. (n.d.). Object familiarity influences infant gaze
 control during free scene viewing. *Manuscript in Preparation*.
 
 </div>

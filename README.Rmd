@@ -1,5 +1,5 @@
 ---
-title: "Dynamic Model of Eye Movements"
+title: "WALD-EM: Wald Accumulation for Locations and Durations of Eye Movements"
 output: 
   rmarkdown::github_document:
     pandoc_args: --webtex
@@ -13,7 +13,7 @@ csl: "`r here::here('apa.csl')`"
 
 This repository provides code and additional materials associated with the article 
 
-> Kucharský, Š., van Renswoude, D., Raijmakers, M.E.J., & Visser, I. (2020). Dynamic model of eye movements (provisional title).
+> Kucharský, Š., van Renswoude, D. R., Raijmakers, M. E. J., & Visser, I. (2020, July 17). WALD-EM: Wald Accumulation for Locations and Durations of Eye Movements. https://doi.org/10.31234/osf.io/2s48r
 
 ### Getting started
 
