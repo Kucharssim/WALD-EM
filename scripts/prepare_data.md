@@ -1,11 +1,11 @@
 Data Preparation
 ================
 Simon Kucharsky
-2020-06-09
+2020-10-14
 
 ## Eye movement data
 
-The eye movement data comes from Renswoude et al. (2019)
+The eye movement data comes from Renswoude et al. (n.d.)
 <https://osf.io/dp245>, and is based on the stimulus materials provided
 in Xu et al. (2014).
 
@@ -74,7 +74,11 @@ n_fixations <- df %>%
   dplyr::ungroup() %>%
   tidyr::complete(id_ppt, id_img, fill = list(n = 0)) %>%
   dplyr::mutate(is_na = n == 0, is_not_na = n != 0)
+```
 
+    ## `summarise()` regrouping output by 'id_ppt' (override with `.groups` argument)
+
+``` r
 n_fixations %>%
   ggplot2::ggplot(ggplot2::aes(x = as.factor(id_ppt), y = as.factor(id_img), alpha = n)) + 
   ggplot2::geom_tile(color = "white") +
@@ -110,7 +114,11 @@ df %<>% plyr::ddply(.variables = "id_ppt", .fun = function(d){
 trains <- df %>%
   dplyr::group_by(id_ppt, id_img) %>%
   dplyr::summarise(train = all(train))
+```
 
+    ## `summarise()` regrouping output by 'id_ppt' (override with `.groups` argument)
+
+``` r
 trains %>%
   ggplot2::ggplot(ggplot2::aes(x = as.factor(id_ppt), y = as.factor(id_img), fill = as.factor(train))) + 
   ggplot2::geom_tile() +
@@ -235,6 +243,13 @@ df$log_lik_saliency <- numeric(length = nrow(df))
 saliency_log_list <- list()
 
 pb <- dplyr::progress_estimated(nrow(df))
+```
+
+    ## Warning: `progress_estimated()` is deprecated as of dplyr 1.0.0.
+    ## This warning is displayed once every 8 hours.
+    ## Call `lifecycle::last_warnings()` to see where this warning was generated.
+
+``` r
 for(i in seq_len(nrow(df))){
   pb$tick()$print()
   x <- df$x[i]
@@ -296,6 +311,8 @@ objects_in_images <- objects %>%
   dplyr::select   (id_img, n, from, to)
 ```
 
+    ## `summarise()` ungrouping output (override with `.groups` argument)
+
 ``` r
 readr::write_csv(df,                    path = here::here("data", "fixations.csv"))
 readr::write_csv(df %>% subset(train),  path = here::here("data", "fixations_train.csv"))
@@ -303,6 +320,7 @@ readr::write_csv(df %>% subset(!train), path = here::here("data", "fixations_val
 readr::write_csv(as.data.frame(mean_sq_distances), path = here::here("data", "mean_sq_distances.csv"))
 readr::write_csv(as.data.frame(saliency_log),      path = here::here("data", "saliency_log.csv"))
 readr::write_csv(objects,               path = here::here("data", "objects.csv"))
+readr::write_csv(objects_in_images,     path = here::here("data", "objects_in_images.csv"))
 
 save(df, mean_sq_distances, saliency_log, saliency_normalized, image_key, objects, objects_in_images,
      file = here::here("data", "cleaned_data.Rdata"))
@@ -315,7 +333,7 @@ save(df, mean_sq_distances, saliency_log, saliency_normalized, image_key, object
 <div id="ref-renswoude2019object_familiarity">
 
 Renswoude, D. R. van, Voorvaart, R. E., Berg, L. van den, Raijmakers, M.
-E., & Visser, I. (2019). Object familiarity influences infant gaze
+E. J., & Visser, I. (n.d.). Object familiarity influences infant gaze
 control during free scene viewing. *Manuscript in Preparation*.
 
 </div>
