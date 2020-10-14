@@ -12,7 +12,7 @@ csl: "`r here::here('apa.csl')`"
 
 
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 library(Rcpp)
 Rcpp::sourceCpp(code = 
 '
@@ -106,8 +106,8 @@ $$
 \end{aligned}
 $$
 
-```{r prior_predictives, echo=FALSE, cache=FALSE}
-n_sim <- 1000
+```{r prior_predictives, echo=FALSE, cache=TRUE}
+n_sim <- 200
 t_max <- 10
 n_objects <- nrow(objects)
 sim_parameters_list <- replicate(n = n_sim, expr = list(pi    = gtools::rdirichlet(1, rep(2, n_objects))[1,,drop=TRUE],
@@ -179,18 +179,15 @@ hist(sapply(sim_data_list, nrow), breaks = n_sim / 50, main = sprintf("Number of
 
 ## Simulation based calibration
 
-We fit the model on all `r n_sim` simulated datasets and computed the rank based statistics from 10 MCMC samples (after thinning by a factor 2).
+We fit the model on all `r n_sim` simulated datasets and computed the rank based statistics from 10 MCMC samples (after thinning by a factor 10).
 
 ```{r sbc_fit, eval=TRUE, message=FALSE, warning=FALSE, cache=TRUE, include=FALSE}
-pb <- dplyr::progress_estimated(length(sim_data_list), min_time = 1)
-#pb <- dplyr::progress_estimated(10, min_time = 1)
 fits <- plyr::dlply(.data = sim_data, .variables = "sim", .fun = function(d){
-  pb$tick()$print()
   stan_data <- list(N_obs = nrow(d), x = d$x, y = d$y, duration = d$duration, 
                     N_objects = n_objects, objects_center_x = objects$x, objects_center_y = objects$y,
                     objects_width = objects$width, objects_height = objects$height)
   suppressWarnings(
-    fit <- rstan::sampling(model, stan_data, chains  = 1, cores = 1, iter = 520, warmup = 500, refresh = 0, thin = 2)
+    fit <- rstan::sampling(model, stan_data, chains  = 2, cores = 2, iter = 1000, warmup = 500, refresh = 0, thin = 1)
   )
   return(fit)
 }, .parallel = TRUE)
@@ -198,19 +195,19 @@ fits <- plyr::dlply(.data = sim_data, .variables = "sim", .fun = function(d){
 
 
 ```{r sbc_result, eval=FALSE, echo=FALSE, cache=FALSE}
-pars <- c("alpha", "delta", "sigma_attention")
-sbc <- lapply(pars, function(p) fits2rank(fits, sim_parameters[[p]], p))
-
-par(mfrow = c(length(pars), 2))
-for(p in seq_along(pars)){
-  post_par <- sapply(fits, function(f) rstan::extract(f)[[pars[p]]])
-  barplot(table(sbc[[p]]), main = pars[p], xlab = "Rank")
-  hist(sim_parameters[[pars[p]]], freq=FALSE, col = "red", main = pars[p], xlab = "")
-  hist(post_par, add = TRUE, freq = FALSE, col = rgb(0, 1, 0, 0.5))
-}
+# pars <- c("alpha", "delta", "sigma_attention")
+# sbc <- lapply(pars, function(p) fits2rank(fits, sim_parameters[[p]], p))
+# 
+# par(mfrow = c(length(pars), 2))
+# for(p in seq_along(pars)){
+#   post_par <- sapply(fits, function(f) rstan::extract(f)[[pars[p]]])
+#   barplot(table(sbc[[p]]), main = pars[p], xlab = "Rank")
+#   hist(sim_parameters[[pars[p]]], freq=FALSE, col = "red", main = pars[p], xlab = "")
+#   hist(post_par, add = TRUE, freq = FALSE, col = rgb(0, 1, 0, 0.5))
+# }
 ```
 
-Above are the rank statistics based on 10 draws from the posterior for parameters `r pars`. The barplots seem relatively uniformly distributed, which does not suggest strong bias and/or issue with too certain/uncertain estimates. The histograms of the priors (red) and data averaged posteriors (green) also overlap sugesting that the correct posteriors are estimated.
+Above are the rank statistics based on 10 draws from the posterior for parameters. The barplots seem relatively uniformly distributed, which does not suggest strong bias and/or issue with too certain/uncertain estimates. The histograms of the priors (red) and data averaged posteriors (green) also overlap sugesting that the correct posteriors are estimated.
 
 ## Posterior contraction
 
