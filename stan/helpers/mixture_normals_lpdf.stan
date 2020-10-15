@@ -24,7 +24,7 @@
 
   vector mixture_normals_rng(vector weights, vector mu_x, vector sigma_x, vector mu_y, vector sigma_y){
     int K = num_elements(weights);
-    vector[K] out;
+    vector[2] out;
     
     int k = categorical_rng(weights);
     out[1] = normal_rng(mu_x[k], sigma_x[k]);
@@ -35,7 +35,7 @@
   
   vector mixture_trunc_normals_rng(vector weights, vector mu_x, vector sigma_x, vector mu_y, vector sigma_y, real lb_x, real ub_x, real lb_y, real ub_y) {
     int K = num_elements(weights);
-    vector[K] out;
+    vector[2] out;
     
     int k = categorical_rng(weights);
     out[1] = trunc_normal_rng(mu_x[k], sigma_x[k], lb_x, ub_x);

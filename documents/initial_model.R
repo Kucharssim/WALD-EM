@@ -34,7 +34,7 @@ par(mfrow = c(1, 1))
 
 
 # draw from priors
-N_sim <- 2
+N_sim <- 20
 N_ppt <- 10
 N_obj <- nrow(objects)
 
@@ -60,14 +60,21 @@ true_z_weights_obj <- as.data.frame(matrix(rnorm(N_obj * N_sim), nrow = N_sim))
 colnames(true_z_weights_obj) <- sprintf("z_weights_obj[%s]", seq_len(N_obj))
 
 # individual parameters: alpha
-true_z_log_alpha <- sapply(seq_len(N_ppt), function(p) rnorm(N_sim, true_parameters$mu_log_alpha, true_parameters$sigma_log_alpha))
-true_z_log_alpha <- as.data.frame(true_z_log_alpha)  
-colnames(true_z_log_alpha) <- sprintf("z_log_alpha[%s]", seq_len(N_ppt))  
+true_alpha <- sapply(seq_len(N_ppt), function(p) rnorm(N_sim, true_parameters$mu_log_alpha, true_parameters$sigma_log_alpha))
+true_alpha <- exp(true_alpha) 
+# true_alpha[true_alpha > 10] <- rexp(sum(true_alpha > 10), 1) # get rid of unrealistically high alphas
+
+true_alpha <- as.data.frame(true_alpha)
+colnames(true_alpha) <- sprintf("alpha[%s]", seq_len(N_ppt))
+
 
 # individual parameters: sigma_attention
-true_z_log_sigma_attention <- sapply(seq_len(N_ppt), function(p) rnorm(N_sim, true_parameters$mu_log_sigma_attention, true_parameters$sigma_log_sigma_attention))
-true_z_log_sigma_attention <- as.data.frame(true_z_log_sigma_attention)  
-colnames(true_z_log_sigma_attention) <- sprintf("z_log_sigma_attention[%s]", seq_len(N_ppt))  
+true_sigma_attention <- sapply(seq_len(N_ppt), function(p) rnorm(N_sim, true_parameters$mu_log_sigma_attention, true_parameters$sigma_log_sigma_attention))
+true_sigma_attention <- exp(true_sigma_attention)
+
+true_sigma_attention <- as.data.frame(true_sigma_attention)  
+colnames(true_sigma_attention) <- sprintf("sigma_attention[%s]", seq_len(N_ppt))  
+
 
 # merge it all together:
 #true_parameters <- bind_cols(true_parameters, true_weights, true_z_weights_obj, true_z_log_alpha, true_z_log_sigma_attention)
@@ -79,7 +86,7 @@ design$image_nr <- image_nr[design$id_img]
 
 
 simulate_trial <- function(specs, t_max = 10, n_max = t_max * 10){
-  browser()
+  # browser()
   id_ppt <- specs[['id_ppt']]
   id_img <- specs[['id_img']]
   sim    <- specs[['sim']]
@@ -90,24 +97,28 @@ simulate_trial <- function(specs, t_max = 10, n_max = t_max * 10){
   sigma_distance            <- true_parameters[sim, "sigma_distance", drop=TRUE]
   scale_obj                 <- true_parameters[sim, "scale_obj", drop=TRUE]
   
-  mu_log_alpha              <- true_parameters[sim, "mu_log_alpha", drop=TRUE]
-  sigma_log_alpha           <- true_parameters[sim, "sigma_log_alpha", drop=TRUE]
+  # mu_log_alpha              <- true_parameters[sim, "mu_log_alpha", drop=TRUE]
+  # sigma_log_alpha           <- true_parameters[sim, "sigma_log_alpha", drop=TRUE]
   mu_log_sigma_attention    <- true_parameters[sim, "mu_log_sigma_attention", drop=TRUE]
   sigma_log_sigma_attention <- true_parameters[sim, "sigma_log_sigma_attention", drop=TRUE]
   
   weights               <- true_weights[sim,] %>% as.vector()
   
   z_weights_obj         <- true_z_weights_obj[sim, objects_in_images$from[id_img]:objects_in_images$to[id_img]] %>% as.vector()
-  weights_obj           <- exp(z_weights_obj) / sum(exp(z_weights_obj))
+  weights_obj           <- as.matrix(exp(z_weights_obj) / sum(exp(z_weights_obj)), ncol = 1)
   
-  z_log_alpha           <- true_z_log_alpha[sim, id_ppt, drop=TRUE]
-  alpha                 <- exp(mu_log_alpha + sigma_log_alpha * z_log_alpha)
+  # z_log_alpha           <- true_z_log_alpha[sim, id_ppt, drop=TRUE]
+  # alpha                 <- exp(mu_log_alpha + sigma_log_alpha * z_log_alpha)
+  alpha <- true_alpha[sim, id_ppt, drop=TRUE]
   
-  z_log_sigma_attention <- true_z_log_sigma_attention[sim, id_ppt, drop=TRUE]
-  sigma_attention       <- exp(mu_log_sigma_attention + sigma_log_sigma_attention * z_log_sigma_attention)
+  # z_log_sigma_attention <- true_z_log_sigma_attention[sim, id_ppt, drop=TRUE]
+  # sigma_attention       <- exp(mu_log_sigma_attention + sigma_log_sigma_attention * z_log_sigma_attention)
+  sigma_attention <- true_sigma_attention[sim, id_ppt, drop=TRUE]
   
-  width_obj_x <- scale_obj * obj$width
-  width_obj_y <- scale_obj * obj$height
+  center_obj_x <- as.matrix(obj$x, ncol = 1)
+  center_obj_y <- as.matrix(obj$y, ncol = 1)
+  width_obj_x <- as.matrix(scale_obj * obj$width, ncol = 1)
+  width_obj_y <- as.matrix(scale_obj * obj$height, ncol = 1)
   
   x <- y <- duration <- nu <- numeric()
   t <- 0
@@ -117,7 +128,7 @@ simulate_trial <- function(specs, t_max = 10, n_max = t_max * 10){
     which_factor <- sample(seq_along(weights), 1, FALSE, weights)
     
     if(which_factor == 1) { # objects
-      xy_now <- mixture_trunc_normals_rng(weights_obj, obj$x, width_obj_x, obj$y, width_obj_y, 0, 800, 0, 600)
+      xy_now <- mixture_trunc_normals_rng(weights_obj, center_obj_x, width_obj_x, center_obj_y, width_obj_y, 0, 800, 0, 600)
       x_now <- xy_now[1]
       y_now <- xy_now[2]
       
@@ -132,23 +143,22 @@ simulate_trial <- function(specs, t_max = 10, n_max = t_max * 10){
         y_now <- trunc_normal_rng(300, sigma_distance, 0, 600)
       } else {
         x_now <- trunc_normal_rng(x[length(x)], sigma_distance, 0, 800)
-        y_now <- trunc_normwl_rng(y[length(y)], sigma_distance, 0, 600)
+        y_now <- trunc_normal_rng(y[length(y)], sigma_distance, 0, 600)
       }
     } else { # central bias
       x_now <- trunc_normal_rng(400, sigma_center, 0, 800)
       y_now <- trunc_normal_rng(300, sigma_center, 0, 600)
     }
-    att_filter[1] <- log_integral_attention_mixture_2d(x_now, y_now, weights_obj, obj$x, width_obj_x, obj$y, width_obj_y, sigma_attention, sigma_attention)
-    att_filter[2] <- -100
+    att_filter[1] <- log(weights[[1]]) + log_integral_attention_mixture_2d(x_now, y_now, weights_obj, center_obj_x, width_obj_x, center_obj_y, width_obj_y, sigma_attention, sigma_attention)
+    att_filter[2] <- log(weights[[2]]) - 1
     
     nu_now <- log(sum(weights[1:2])) - log(sum(exp(att_filter)))
     duration_now <- wald_rng(alpha, nu_now)
     
-    
     x <- c(x, x_now)
     y <- c(y, y_now)
     duration <- c(duration, duration_now)
-    nu <- c(nu, duration_now)
+    nu <- c(nu, nu_now)
     t <- t + duration_now
   }
   return(data.frame(x=x, y=y, duration=duration, nu=nu))
