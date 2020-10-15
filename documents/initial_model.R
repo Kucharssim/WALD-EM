@@ -8,6 +8,17 @@ library(here)
 source(here::here("R", "load_image.R"))
 source(here::here("R", "helpers.R"))
 source(here::here("R", "expose_helpers_stan.R"))
+log_sum_exp <- matrixStats::logSumExp
+
+## definition of critical radius
+# subset saliency in radius of 100 from the fixation position
+dist_screen <- 60  # distance from the screen (cm)
+theta       <- 5   # radius of foveal vision (degrees of visual angle)
+width_cm    <- 51  # width of the screen (cm)
+width_pix   <- 800 # number of pixels in horizontal location
+size_pix    <- width_cm / width_pix # size of one pixel
+radius <- tan(theta * pi / 180)*dist_screen / size_pix
+
 
 image_nr <- c(1001, 1014, 1049)
 image_name  <- paste0(image_nr, ".jpg")
@@ -97,30 +108,23 @@ simulate_trial <- function(specs, t_max = 10, n_max = t_max * 10){
   sigma_distance            <- true_parameters[sim, "sigma_distance", drop=TRUE]
   scale_obj                 <- true_parameters[sim, "scale_obj", drop=TRUE]
   
-  # mu_log_alpha              <- true_parameters[sim, "mu_log_alpha", drop=TRUE]
-  # sigma_log_alpha           <- true_parameters[sim, "sigma_log_alpha", drop=TRUE]
   mu_log_sigma_attention    <- true_parameters[sim, "mu_log_sigma_attention", drop=TRUE]
   sigma_log_sigma_attention <- true_parameters[sim, "sigma_log_sigma_attention", drop=TRUE]
   
-  weights               <- true_weights[sim,] %>% as.vector()
+  weights                   <- true_weights[sim,] %>% as.vector()
   
-  z_weights_obj         <- true_z_weights_obj[sim, objects_in_images$from[id_img]:objects_in_images$to[id_img]] %>% as.vector()
-  weights_obj           <- as.matrix(exp(z_weights_obj) / sum(exp(z_weights_obj)), ncol = 1)
+  z_weights_obj             <- true_z_weights_obj[sim, objects_in_images$from[id_img]:objects_in_images$to[id_img]] %>% as.vector()
+  weights_obj               <- as.matrix(exp(z_weights_obj) / sum(exp(z_weights_obj)), ncol = 1)
   
-  # z_log_alpha           <- true_z_log_alpha[sim, id_ppt, drop=TRUE]
-  # alpha                 <- exp(mu_log_alpha + sigma_log_alpha * z_log_alpha)
-  alpha <- true_alpha[sim, id_ppt, drop=TRUE]
-  
-  # z_log_sigma_attention <- true_z_log_sigma_attention[sim, id_ppt, drop=TRUE]
-  # sigma_attention       <- exp(mu_log_sigma_attention + sigma_log_sigma_attention * z_log_sigma_attention)
-  sigma_attention <- true_sigma_attention[sim, id_ppt, drop=TRUE]
+  alpha                     <- true_alpha[sim, id_ppt, drop=TRUE]
+  sigma_attention           <- true_sigma_attention[sim, id_ppt, drop=TRUE]
   
   center_obj_x <- as.matrix(obj$x, ncol = 1)
   center_obj_y <- as.matrix(obj$y, ncol = 1)
   width_obj_x <- as.matrix(scale_obj * obj$width, ncol = 1)
   width_obj_y <- as.matrix(scale_obj * obj$height, ncol = 1)
   
-  x <- y <- duration <- nu <- numeric()
+  x <- y <- duration <- nu <- saliency_log_lik <- n_neighbors <- numeric()
   t <- 0
 
   while(t <= t_max && length(x) < n_max) {
@@ -149,19 +153,29 @@ simulate_trial <- function(specs, t_max = 10, n_max = t_max * 10){
       x_now <- trunc_normal_rng(400, sigma_center, 0, 800)
       y_now <- trunc_normal_rng(300, sigma_center, 0, 600)
     }
-    att_filter[1] <- log(weights[[1]]) + log_integral_attention_mixture_2d(x_now, y_now, weights_obj, center_obj_x, width_obj_x, center_obj_y, width_obj_y, sigma_attention, sigma_attention)
-    att_filter[2] <- log(weights[[2]]) - 1
+    distances <- sqrt((x_now - sal$x)^2 + (y_now - sal$y)^2)
+    mean_sq_distances <- distances^2 / 2
+    which_closest <- which.min(distances)
+    which_neighbors <- distances < radius
     
-    nu_now <- log(sum(weights[1:2])) - log(sum(exp(att_filter)))
+    att_filter[1] <- log(weights[[1]]) + log_integral_attention_mixture_2d(x_now, y_now, weights_obj, center_obj_x, width_obj_x, center_obj_y, width_obj_y, sigma_attention, sigma_attention)
+    att_filter[2] <- log(weights[[2]]) + log_sum_exp(sal$saliency_log - mean_sq_distances / sigma_attention^2)
+    
+    saliency_log_lik_now <- sal$log_lik_saliency[which_closest]
+    nu_now <- log(sum(weights[1:2])) - log_sum_exp(att_filter)
     duration_now <- wald_rng(alpha, nu_now)
     
     x <- c(x, x_now)
     y <- c(y, y_now)
     duration <- c(duration, duration_now)
     nu <- c(nu, nu_now)
+    saliency_log_lik <- c(saliency_log_lik, saliency_log_lik_now)
+    n_neighbors <- c(n_neighbors, sum(which_neighbors))
+    
     t <- t + duration_now
   }
-  return(data.frame(x=x, y=y, duration=duration, nu=nu))
+  
+  return(data.frame(x=x, y=y, duration=duration, nu=nu, saliency_log_lik=saliency_log_lik, n_neighbors=n_neighbors))
 }
 
 sim_data <- plyr::ddply(.data = design, .variables = c("sim", "id_ppt", "id_img"), 
