@@ -31,7 +31,7 @@ par(mfcol = c(2, 3))
 for(i in seq_along(image_name)) {
   img <- load_image(image_name[i])
   dim_img <- list(min_x = 0, min_y = 0, max_x = imager::width(img), max_y = imager::height(img))
-  obj <- subset(objects, image_name == image_nr[i])
+  obj <- subset(objects, image == image_nr[i])
   sal <- subset(saliency, image == image_nr[i])
   
   plot(img, axes = FALSE)
@@ -43,6 +43,14 @@ for(i in seq_along(image_name)) {
 }
 par(mfrow = c(1, 1))
 
+# sal <- subset(saliency, image == image_nr[1])
+# xy <- replicate(1e5, saliency_rng(sal$value_normalized, sal$x, sal$y, 20), simplify = FALSE)
+# xy <- do.call(rbind, xy)
+# xy[,2] <- 600-xy[,2]
+# par(mfrow = c(1,2))
+# plot(xy, pch = 19, cex = 0.1)
+# plot(imager::as.cimg(sal$value, x = max(sal$row), y = max(sal$col)), axes = FALSE)
+# par(mfrow = c(1, 1))
 
 # draw from priors
 N_sim <- 20
@@ -96,7 +104,7 @@ design <- expand.grid(id_ppt = seq_len(N_ppt), id_img = seq_along(image_nr), sim
 design$image_nr <- image_nr[design$id_img]
 
 
-simulate_trial <- function(specs, t_max = 10, n_max = t_max * 10){
+simulate_trial <- function(specs, t_max = 10, n_max = t_max * 5){
   # browser()
   id_ppt <- specs[['id_ppt']]
   id_img <- specs[['id_img']]
@@ -124,9 +132,11 @@ simulate_trial <- function(specs, t_max = 10, n_max = t_max * 10){
   width_obj_x <- as.matrix(scale_obj * obj$width, ncol = 1)
   width_obj_y <- as.matrix(scale_obj * obj$height, ncol = 1)
   
-  x <- y <- duration <- nu <- saliency_log_lik <- n_neighbors <- numeric()
+  x <- y <- duration <- nu <- log_lik_saliency <- n_neighbors <- numeric()
   t <- 0
-
+  m_sq_dist <- matrix(0, nrow = 0, ncol = nrow(sal))
+  saliency_log <- matrix(0, nrow = 0, ncol = nrow(sal))
+  
   while(t <= t_max && length(x) < n_max) {
     att_filter   <- numeric(length = 2)
     which_factor <- sample(seq_along(weights), 1, FALSE, weights)
@@ -138,8 +148,8 @@ simulate_trial <- function(specs, t_max = 10, n_max = t_max * 10){
       
     } else if(which_factor == 2) { # saliency
       xy_now <- saliency_rng(sal$value_normalized, sal$x, sal$y, 20)
-      x_now <- xy_now[1]
-      y_now <- xy_now[2]
+      x_now <- xy_now[1] - 0.5
+      y_now <- xy_now[2] - 0.5
       
     } else if(which_factor == 3) { # exploitation
       if(t == 0) {
@@ -158,6 +168,7 @@ simulate_trial <- function(specs, t_max = 10, n_max = t_max * 10){
     which_closest <- which.min(distances)
     which_neighbors <- distances < radius
     
+    
     att_filter[1] <- log(weights[[1]]) + log_integral_attention_mixture_2d(x_now, y_now, weights_obj, center_obj_x, width_obj_x, center_obj_y, width_obj_y, sigma_attention, sigma_attention)
     att_filter[2] <- log(weights[[2]]) + log_sum_exp(sal$saliency_log - mean_sq_distances / sigma_attention^2)
     
@@ -169,14 +180,81 @@ simulate_trial <- function(specs, t_max = 10, n_max = t_max * 10){
     y <- c(y, y_now)
     duration <- c(duration, duration_now)
     nu <- c(nu, nu_now)
-    saliency_log_lik <- c(saliency_log_lik, saliency_log_lik_now)
+    log_lik_saliency <- c(log_lik_saliency, saliency_log_lik_now)
     n_neighbors <- c(n_neighbors, sum(which_neighbors))
     
     t <- t + duration_now
+    
+    m_sq_dist <- rbind(m_sq_dist, sort(mean_sq_distances))
+    saliency_log <- rbind(saliency_log, sal$saliency_log[order(mean_sq_distances)])
   }
+  m_sq_dist <- as.data.frame(m_sq_dist)
+  colnames(m_sq_dist) <- sprintf("m_sq_dist[%s]", seq_len(ncol(m_sq_dist)))
   
-  return(data.frame(x=x, y=y, duration=duration, nu=nu, saliency_log_lik=saliency_log_lik, n_neighbors=n_neighbors))
+  saliency_log <- as.data.frame(saliency_log)
+  colnames(saliency_log) <- sprintf("saliency_log[%s]", seq_len(ncol(saliency_log)))
+  
+  data <- data.frame(order=seq_along(x), x=x, y=y, duration=duration, nu=nu, 
+                     log_lik_saliency=log_lik_saliency, n_neighbors=n_neighbors)
+  data <- cbind(data, m_sq_dist)
+  data <- cbind(data, saliency_log)
+  
+  return(data)
 }
 
 sim_data <- plyr::ddply(.data = design, .variables = c("sim", "id_ppt", "id_img"), 
                         .fun = simulate_trial, .progress = "text")
+
+drop <- sprintf("m_sq_dist[%s]", (max(sim_data$n_neighbors)+1):300)
+sim_data <- sim_data[, !(colnames(sim_data) %in% drop)]
+drop <- sprintf("saliency_log[%s]", (max(sim_data$n_neighbors)+1):300)
+sim_data <- sim_data[, !(colnames(sim_data) %in% drop)]
+
+get_stan_data <- function(data) {
+  list(
+    N_obs             = nrow(data),
+    order             = data$order,
+    x                 = data$x,
+    y                 = data$y,
+    duration          = data$duration,
+    
+    N_obj             = nrow(objects),
+    obj_center_x      = objects$x,
+    obj_center_y      = objects$y,
+    obj_width         = objects$width,
+    obj_height        = objects$height,
+    N_ppt             = dplyr::n_distinct(data$id_ppt),
+    id_ppt            = data$id_ppt,
+    N_img             = dplyr::n_distinct(data$id_img),
+    id_img            = data$id_img,
+    obj_index_from    = objects_in_images$from,
+    obj_index_to      = objects_in_images$to,
+    N_obj_in_img      = objects_in_images$n,
+    log_lik_saliency  = data$log_lik_saliency,
+    max_neighbors     = length(dplyr::starts_with("m_sq_dist", vars = colnames(sim_data))),
+    N_neighbors       = data$n_neighbors,
+    mean_sq_distances = dplyr::select(data, dplyr::starts_with("m_sq_dist")) %>% as.matrix(),
+    saliency_log      = dplyr::select(data, dplyr::starts_with("saliency_log[")) %>% as.matrix()
+    
+    # lb_x              = 0,
+    # ub_x              = 800,
+    # lb_y              = 0,
+    # ub_y              = 600
+  )
+}
+
+stan_model <- rstan::stan_model(here::here("stan", "objects_central_distance_saliency.stan"))
+
+fit_sim <- function(data) {
+  # cat("starting simulation:", unique(data$sim), "\n")
+  stan_data <- get_stan_data(data)
+  # browser()
+  
+  fit <- rstan::sampling(stan_model, stan_data, cores = 4, chains = 4, iter = 750, warmup = 500, refresh = 250)
+  
+  # cat("simulation:", unique(data$sim), "finished!\n")
+  return(fit)
+}
+
+fits <- plyr::dlply(.data = sim_data, .variables = c("sim"), .fun = fit_sim, .progress = "tk")
+
