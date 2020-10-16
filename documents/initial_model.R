@@ -9,6 +9,7 @@ source(here::here("R", "load_image.R"))
 source(here::here("R", "helpers.R"))
 source(here::here("R", "expose_helpers_stan.R"))
 log_sum_exp <- matrixStats::logSumExp
+overwrite_cache <- FALSE
 
 ## definition of critical radius
 # subset saliency in radius of 100 from the fixation position
@@ -57,7 +58,7 @@ N_sim <- 10
 N_ppt <- 20
 N_obj <- nrow(objects)
 
-if(!file.exists(here::here("documents", "initial_model_saves", "true.Rdata"))) {
+if(!file.exists(here::here("documents", "initial_model_saves", "true.Rdata")) || overwrite_cache) {
   # scalar parameters
   true_parameters <- data.frame(
     sigma_center = rgamma(N_sim, 2, 0.02),
@@ -204,7 +205,7 @@ simulate_trial <- function(specs, t_max = 5, n_max = t_max * 10){
   return(data)
 }
 
-if(!file.exists(here::here("documents", "initial_model_saves", "sim_data.Rdata"))){
+if(!file.exists(here::here("documents", "initial_model_saves", "sim_data.Rdata")) || overwrite_cache){
   sim_data <- plyr::ddply(.data = design, .variables = c("sim", "id_ppt", "id_img"), 
                           .fun = simulate_trial, .progress = "text")
   save(sim_data, file = here::here("documents", "initial_model_saves", "sim_data.Rdata"))
@@ -265,7 +266,7 @@ fit_sim <- function(data) {
   return(fit)
 }
 
-if(!file.exists(here::here("documents", "initial_model_saves", "fits.Rdata"))) {
+if(!file.exists(here::here("documents", "initial_model_saves", "fits.Rdata")) || overwrite_cache) {
   fits <- plyr::dlply(.data = sim_data, .variables = c("sim"), .fun = fit_sim, .progress = "tk")
   save(fits, file = here::here("documents", "initial_model_saves", "fits.Rdata"))
 } else {
