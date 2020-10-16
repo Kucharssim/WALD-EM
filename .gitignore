@@ -6,3 +6,5 @@
 data/object_familiarity
 get_saliency
 *_cache
+documents/initial_model_saves/*
+!documents/initial_model_saves/.gitkeep

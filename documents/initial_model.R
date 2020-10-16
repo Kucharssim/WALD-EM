@@ -57,47 +57,49 @@ N_sim <- 10
 N_ppt <- 20
 N_obj <- nrow(objects)
 
-# scalar parameters
-true_parameters <- data.frame(
-  sim = seq_len(N_sim),
-  sigma_center = rgamma(N_sim, 2, 0.02),
-  sigma_distance = rgamma(N_sim, 2, 0.02),
-  scale_obj = replicate(N_sim, trunc_normal_rng(1, 0.5, 0, Inf)),
-  mu_log_alpha = rnorm(N_sim, 0, 0.5),
-  sigma_log_alpha = rgamma(N_sim, 2, 5),
-  mu_log_sigma_attention = rnorm(N_sim, 4, 1),
-  sigma_log_sigma_attention = rgamma(N_sim, 2, 5)
-)
-
-# vector parameters
-# weights of factors
-true_weights <- as.data.frame(gtools::rdirichlet(N_sim, rep(2, 4)))
-colnames(true_weights) <- sprintf("weights[%s]", 1:4)
-
-# invlogit weights objects 
-true_z_weights_obj <- as.data.frame(matrix(rnorm(N_obj * N_sim), nrow = N_sim))
-colnames(true_z_weights_obj) <- sprintf("z_weights_obj[%s]", seq_len(N_obj))
-
-# individual parameters: alpha
-true_alpha <- sapply(seq_len(N_ppt), function(p) rnorm(N_sim, true_parameters$mu_log_alpha, true_parameters$sigma_log_alpha))
-true_alpha <- exp(true_alpha) 
-# true_alpha[true_alpha > 10] <- rexp(sum(true_alpha > 10), 1) # get rid of unrealistically high alphas
-
-true_alpha <- as.data.frame(true_alpha)
-colnames(true_alpha) <- sprintf("alpha[%s]", seq_len(N_ppt))
-
-
-# individual parameters: sigma_attention
-true_sigma_attention <- sapply(seq_len(N_ppt), function(p) rnorm(N_sim, true_parameters$mu_log_sigma_attention, true_parameters$sigma_log_sigma_attention))
-true_sigma_attention <- exp(true_sigma_attention)
-
-true_sigma_attention <- as.data.frame(true_sigma_attention)  
-colnames(true_sigma_attention) <- sprintf("sigma_attention[%s]", seq_len(N_ppt))  
-
-
-# merge it all together:
-#true_parameters <- bind_cols(true_parameters, true_weights, true_z_weights_obj, true_z_log_alpha, true_z_log_sigma_attention)
-#rm(true_weights, true_z_weights_obj, true_z_log_alpha, true_z_log_sigma_attention)
+if(!file.exists(here::here("documents", "initial_model_saves", "true.Rdata"))) {
+  # scalar parameters
+  true_parameters <- data.frame(
+    sigma_center = rgamma(N_sim, 2, 0.02),
+    sigma_distance = rgamma(N_sim, 2, 0.02),
+    scale_obj = replicate(N_sim, trunc_normal_rng(1, 0.5, 0, Inf)),
+    mu_log_alpha = rnorm(N_sim, 0, 0.5),
+    sigma_log_alpha = rgamma(N_sim, 2, 5),
+    mu_log_sigma_attention = rnorm(N_sim, 4, 1),
+    sigma_log_sigma_attention = rgamma(N_sim, 2, 5)
+  )
+  
+  # vector parameters
+  # weights of factors
+  true_weights <- as.data.frame(gtools::rdirichlet(N_sim, rep(2, 4)))
+  colnames(true_weights) <- sprintf("weights[%s]", 1:4)
+  
+  # invlogit weights objects 
+  true_z_weights_obj <- as.data.frame(matrix(rnorm(N_obj * N_sim), nrow = N_sim))
+  colnames(true_z_weights_obj) <- sprintf("z_weights_obj[%s]", seq_len(N_obj))
+  
+  # individual parameters: alpha
+  true_alpha <- sapply(seq_len(N_ppt), function(p) rnorm(N_sim, true_parameters$mu_log_alpha, true_parameters$sigma_log_alpha))
+  true_alpha <- exp(true_alpha) 
+  # true_alpha[true_alpha > 10] <- rexp(sum(true_alpha > 10), 1) # get rid of unrealistically high alphas
+  
+  true_alpha <- as.data.frame(true_alpha)
+  colnames(true_alpha) <- sprintf("alpha[%s]", seq_len(N_ppt))
+  
+  
+  # individual parameters: sigma_attention
+  true_sigma_attention <- sapply(seq_len(N_ppt), function(p) rnorm(N_sim, true_parameters$mu_log_sigma_attention, true_parameters$sigma_log_sigma_attention))
+  true_sigma_attention <- exp(true_sigma_attention)
+  
+  true_sigma_attention <- as.data.frame(true_sigma_attention)  
+  colnames(true_sigma_attention) <- sprintf("sigma_attention[%s]", seq_len(N_ppt))  
+  
+  # save generating values:
+  save(true_parameters, true_weights, true_z_weights_obj, true_alpha, true_sigma_attention, 
+       file = here::here("documents", "initial_model_saves", "true.Rdata"))
+} else {
+  load(here::here("documents", "initial_model_saves", "true.Rdata"))
+}
 
 # prepare design:
 design <- expand.grid(id_ppt = seq_len(N_ppt), id_img = seq_along(image_nr), sim = seq_len(N_sim), KEEP.OUT.ATTRS = FALSE)
@@ -202,12 +204,18 @@ simulate_trial <- function(specs, t_max = 5, n_max = t_max * 10){
   return(data)
 }
 
-sim_data <- plyr::ddply(.data = design, .variables = c("sim", "id_ppt", "id_img"), 
-                        .fun = simulate_trial, .progress = "text")
+if(!file.exists(here::here("documents", "initial_model_saves", "sim_data.Rdata"))){
+  sim_data <- plyr::ddply(.data = design, .variables = c("sim", "id_ppt", "id_img"), 
+                          .fun = simulate_trial, .progress = "text")
+  save(sim_data, file = here::here("documents", "initial_model_saves", "sim_data.Rdata"))
+} else {
+  load(here::here("documents", "initial_model_saves", "sim_data.Rdata"))
+}
 
+mean(sim_data$duration < 1)
 hist(sim_data$duration[sim_data$duration < 1])
 sim_data %>% group_by(sim, id_ppt, id_img) %>% summarise(t = n()) %>% ggplot(aes(x = t)) + geom_histogram()
-
+sim_data %>% group_by(sim) %>% summarise(t = n())
 
 drop <- sprintf("m_sq_dist[%s]", (max(sim_data$n_neighbors)+1):300)
 sim_data <- sim_data[, !(colnames(sim_data) %in% drop)]
@@ -257,5 +265,58 @@ fit_sim <- function(data) {
   return(fit)
 }
 
-fits <- plyr::dlply(.data = sim_data, .variables = c("sim"), .fun = fit_sim, .progress = "tk")
+if(!file.exists(here::here("documents", "initial_model_saves", "fits.Rdata"))) {
+  fits <- plyr::dlply(.data = sim_data, .variables = c("sim"), .fun = fit_sim, .progress = "tk")
+  save(fits, file = here::here("documents", "initial_model_saves", "fits.Rdata"))
+} else {
+  load(here::here("documents", "initial_model_saves", "fits.Rdata"))
+}
 
+
+get_par <- function(par, true) {
+  fit_summary <- t(sapply(fits, function(fit) summary(fit, pars = par)$summary[, c("mean", "2.5%", "97.5%"), drop=TRUE]))
+  fit_summary <- as.data.frame(fit_summary)
+  fit_summary$true <- true[, par]
+  
+  fit_summary
+}
+
+plot_par <- function(par, true) {
+  df <- get_par(par, true)
+  lim <- range(as.matrix(df))
+  plot(df$true, df$mean, pch = 19, cex = 1, main = par, 
+       xlab = "True", ylab = "Estimated", 
+       xlim = lim, ylim = lim)
+  segments(x0 = df$true, y0 = df$`2.5%`, y1 = df$`97.5%`)
+  abline(a = 0, b = 1)
+}
+
+plot_vec_par <- function(par) {
+  
+}
+
+par(mfrow=c(2, 4))
+for(par in colnames(true_parameters)) {
+  plot_par(par, true_parameters)
+}
+
+par(mfrow=c(1, 4))
+for(par in colnames(true_weights)) {
+  plot_par(par, true_weights)
+}
+
+par(mfrow=c(4, 4))
+for(par in colnames(true_z_weights_obj)) {
+  plot_par(par, true_z_weights_obj)
+}
+
+
+par(mfrow=c(4, 5))
+for(par in colnames(true_alpha)) {
+  plot_par(par, true_alpha)
+}
+
+par(mfrow=c(4, 5))
+for(par in colnames(true_sigma_attention)) {
+  plot_par(par, true_sigma_attention)
+}
