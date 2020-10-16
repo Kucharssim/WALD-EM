@@ -9,7 +9,7 @@ source(here::here("R", "load_image.R"))
 source(here::here("R", "helpers.R"))
 source(here::here("R", "expose_helpers_stan.R"))
 log_sum_exp <- matrixStats::logSumExp
-overwrite_cache <- FALSE
+overwrite_cache <- TRUE
 
 ## definition of critical radius
 # subset saliency in radius of 100 from the fixation position
@@ -21,14 +21,14 @@ size_pix    <- width_cm / width_pix # size of one pixel
 radius <- tan(theta * pi / 180)*dist_screen / size_pix
 
 
-image_nr <- c(1001, 1014, 1049)
+image_nr <- c(1001, 1014, 1049, 1087, 1092, 1099)
 image_name  <- paste0(image_nr, ".jpg")
 objects <- read.csv(here::here("data", "objects.csv")) %>% subset(image %in% image_nr)
 objects_in_images <- read.csv(here::here("data", "objects_in_images.csv")) %>% subset(id_img %in% objects$id_img)
 saliency <- read.csv(here::here("data", "saliency.csv")) %>% subset(image %in% image_nr)
 
 
-par(mfcol = c(2, 3))
+par(mfrow = c(3, 2))
 for(i in seq_along(image_name)) {
   img <- load_image(image_name[i])
   dim_img <- list(min_x = 0, min_y = 0, max_x = imager::width(img), max_y = imager::height(img))
@@ -54,20 +54,20 @@ par(mfrow = c(1, 1))
 # par(mfrow = c(1, 1))
 
 # draw from priors
-N_sim <- 10
-N_ppt <- 20
+N_sim <- 20
+N_ppt <- 25
 N_obj <- nrow(objects)
 
 if(!file.exists(here::here("documents", "initial_model_saves", "true.Rdata")) || overwrite_cache) {
   # scalar parameters
   true_parameters <- data.frame(
-    sigma_center = rgamma(N_sim, 2, 0.02),
-    sigma_distance = rgamma(N_sim, 2, 0.02),
-    scale_obj = replicate(N_sim, trunc_normal_rng(1, 0.5, 0, Inf)),
-    mu_log_alpha = rnorm(N_sim, 0, 0.5),
-    sigma_log_alpha = rgamma(N_sim, 2, 5),
-    mu_log_sigma_attention = rnorm(N_sim, 4, 1),
-    sigma_log_sigma_attention = rgamma(N_sim, 2, 5)
+    sigma_center = rgamma(N_sim, 5, 0.1),
+    sigma_distance = rgamma(N_sim, 3, 0.1),
+    scale_obj = replicate(N_sim, trunc_normal_rng(0.25, 0.5, 0, Inf)),
+    mu_log_alpha = rnorm(N_sim, 0.25, 0.5),
+    sigma_log_alpha = rgamma(N_sim, 2, 10),
+    mu_log_sigma_attention = rnorm(N_sim, 3.75, 0.5),
+    sigma_log_sigma_attention = rgamma(N_sim, 2, 10)
   )
   
   # vector parameters
@@ -107,7 +107,7 @@ design <- expand.grid(id_ppt = seq_len(N_ppt), id_img = seq_along(image_nr), sim
 design$image_nr <- image_nr[design$id_img]
 
 
-simulate_trial <- function(specs, t_max = 5, n_max = t_max * 10){
+simulate_trial <- function(specs, t_max = 5, n_max = 25, n_min = 5){
   # browser()
   id_ppt <- specs[['id_ppt']]
   id_img <- specs[['id_img']]
@@ -140,7 +140,7 @@ simulate_trial <- function(specs, t_max = 5, n_max = t_max * 10){
   m_sq_dist <- matrix(0, nrow = 0, ncol = nrow(sal))
   saliency_log <- matrix(0, nrow = 0, ncol = nrow(sal))
   
-  while(t <= t_max && length(x) < n_max) {
+  while((t < t_max && length(x) < n_max) || length(x) < n_min) {
     att_filter   <- numeric(length = 2)
     which_factor <- sample(seq_along(weights), 1, FALSE, weights)
     
@@ -215,8 +215,9 @@ if(!file.exists(here::here("documents", "initial_model_saves", "sim_data.Rdata")
 
 mean(sim_data$duration < 1)
 hist(sim_data$duration[sim_data$duration < 1])
-sim_data %>% group_by(sim, id_ppt, id_img) %>% summarise(t = n()) %>% ggplot(aes(x = t)) + geom_histogram()
-sim_data %>% group_by(sim) %>% summarise(t = n())
+sim_data %>% group_by(sim, id_ppt, id_img) %>% summarise(n = n()) %>% ggplot(aes(x = n)) + geom_histogram()
+sim_data %>% group_by(sim) %>% summarise(n = n())
+sim_data %>% group_by(sim, id_ppt, id_img) %>% summarise(t = cumsum(duration)) %>% ggplot(aes(x = t)) + geom_histogram()
 
 drop <- sprintf("m_sq_dist[%s]", (max(sim_data$n_neighbors)+1):300)
 sim_data <- sim_data[, !(colnames(sim_data) %in% drop)]
@@ -275,7 +276,7 @@ if(!file.exists(here::here("documents", "initial_model_saves", "fits.Rdata")) ||
 
 
 get_par <- function(par, true) {
-  fit_summary <- t(sapply(fits, function(fit) summary(fit, pars = par)$summary[, c("mean", "2.5%", "97.5%"), drop=TRUE]))
+  fit_summary <- t(sapply(fits, function(fit) summary(fit, pars = par)$summary[, c("mean", "25%", "75%"), drop=TRUE]))
   fit_summary <- as.data.frame(fit_summary)
   fit_summary$true <- true[, par]
   
@@ -288,12 +289,32 @@ plot_par <- function(par, true) {
   plot(df$true, df$mean, pch = 19, cex = 1, main = par, 
        xlab = "True", ylab = "Estimated", 
        xlim = lim, ylim = lim)
-  segments(x0 = df$true, y0 = df$`2.5%`, y1 = df$`97.5%`)
+  segments(x0 = df$true, y0 = df$`25%`, y1 = df$`75%`)
   abline(a = 0, b = 1)
 }
 
-plot_vec_par <- function(par) {
+get_vec_par <- function(par, true) {
+  fit_summary <- lapply(seq_along(fits), function(i) { 
+    fit <- fits[[i]]
+    out <- summary(fit, pars = par)$summary[, c("mean", "25%", "75%"), drop=TRUE]
+    out <- as.data.frame(out)
+    out$true <- unlist(true[i,,drop=TRUE])
+    out$sim <- i
+    colnames(out) <- c("est", "lower", "upper", "true", "sim")
+    out
+  })
+  #fit_summary <- as.data.frame(fit_summary)
   
+  do.call(rbind, fit_summary)
+}
+
+plot_vec_par <- function(par, true) {
+  df <- get_vec_par(par, true)
+  
+  ggplot(df, aes(x=true, y=est, ymin=lower, ymax=upper, col=as.factor(sim))) + 
+    geom_abline(intercept = 0, slope = 1) +
+    geom_point() +
+    geom_errorbar()
 }
 
 par(mfrow=c(2, 4))
@@ -306,18 +327,20 @@ for(par in colnames(true_weights)) {
   plot_par(par, true_weights)
 }
 
-par(mfrow=c(4, 4))
-for(par in colnames(true_z_weights_obj)) {
-  plot_par(par, true_z_weights_obj)
-}
-
-
-par(mfrow=c(4, 5))
-for(par in colnames(true_alpha)) {
-  plot_par(par, true_alpha)
-}
-
-par(mfrow=c(4, 5))
-for(par in colnames(true_sigma_attention)) {
-  plot_par(par, true_sigma_attention)
-}
+plot_vec_par("z_weights_obj", true_z_weights_obj)
+plot_vec_par("alpha", true_alpha)
+plot_vec_par("sigma_attention", true_sigma_attention)
+# par(mfrow=c(4, 4))
+# for(par in colnames(true_z_weights_obj)) {
+#   plot_par(par, true_z_weights_obj)
+# }
+# 
+# par(mfrow=c(4, 5))
+# for(par in colnames(true_alpha)) {
+#   plot_par(par, true_alpha)
+# }
+# 
+# par(mfrow=c(4, 5))
+# for(par in colnames(true_sigma_attention)) {
+#   plot_par(par, true_sigma_attention)
+# }
