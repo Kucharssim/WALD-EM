@@ -9,7 +9,7 @@ source(here::here("R", "load_image.R"))
 source(here::here("R", "helpers.R"))
 source(here::here("R", "expose_helpers_stan.R"))
 log_sum_exp <- matrixStats::logSumExp
-overwrite_cache <- TRUE
+overwrite_cache <- FALSE
 
 ## definition of critical radius
 # subset saliency in radius of 100 from the fixation position

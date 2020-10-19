@@ -27,6 +27,7 @@ The model contains four factors (components), of which two are included in the m
 We conducted a small parameter recovery simulation to assess the model's performance. 
 
 ```{r message=FALSE, warning=FALSE, include=FALSE}
+# Script with the initial model simulations: later it will be rewritten in rmarkdown for a nice github document
 library(tidyverse)
 library(imager)
 library(plotrix)
@@ -35,5 +36,117 @@ library(rstan)
 library(here)
 source(here::here("R", "load_image.R"))
 source(here::here("R", "helpers.R"))
+#source(here::here("R", "expose_helpers_stan.R"))
+log_sum_exp <- matrixStats::logSumExp
+overwrite_cache <- FALSE
+
+## definition of critical radius
+# subset saliency in radius of 100 from the fixation position
+dist_screen <- 60  # distance from the screen (cm)
+theta       <- 5   # radius of foveal vision (degrees of visual angle)
+width_cm    <- 51  # width of the screen (cm)
+width_pix   <- 800 # number of pixels in horizontal location
+size_pix    <- width_cm / width_pix # size of one pixel
+radius <- tan(theta * pi / 180)*dist_screen / size_pix
+
+
+image_nr <- c(1001, 1014, 1049, 1087, 1092, 1099)
+image_name  <- paste0(image_nr, ".jpg")
+objects <- read.csv(here::here("data", "objects.csv")) %>% subset(image %in% image_nr)
+objects_in_images <- read.csv(here::here("data", "objects_in_images.csv")) %>% subset(id_img %in% objects$id_img)
+saliency <- read.csv(here::here("data", "saliency.csv")) %>% subset(image %in% image_nr)
+
+
+```
+
+The simulation is based on six images from the real data set. Below are the pictures with their downsampled saliency maps and highlighted the centers and sizes of labelled objects on the scene.
+
+```{r}
+par(mfrow = c(1, 2))
+for(i in seq_along(image_name)) {
+  img <- load_image(image_name[i])
+  dim_img <- list(min_x = 0, min_y = 0, max_x = imager::width(img), max_y = imager::height(img))
+  obj <- subset(objects, image == image_nr[i])
+  sal <- subset(saliency, image == image_nr[i])
+  
+  plot(img, axes = FALSE)
+  points(obj$x, obj$y, pch = 10, cex = 2)
+   for(i in 1:nrow(obj))
+     plotrix::draw.ellipse(x = obj$x[i], y = obj$y[i], a = obj$width[i]/2, b = obj$height[i]/2, angle = 0, lwd = 2)
+  
+  plot(imager::as.cimg(sal$value, x = max(sal$row), y = max(sal$col)), axes = FALSE)
+}
+par(mfrow = c(1, 1))
+```
+
+```{r}
+# draw from priors
+N_sim <- 20
+N_ppt <- 25
+N_obj <- nrow(objects)
+
+load(here::here("documents", "initial_model_saves", "true.Rdata"))
+load(here::here("documents", "initial_model_saves", "sim_data.Rdata"))
+load(here::here("documents", "initial_model_saves", "fits.Rdata"))
+```
+
+
+
+```{r}
+get_par <- function(par, true) {
+  fit_summary <- t(sapply(fits, function(fit) summary(fit, pars = par)$summary[, c("mean", "25%", "75%"), drop=TRUE]))
+  fit_summary <- as.data.frame(fit_summary)
+  fit_summary$true <- true[, par]
+  
+  fit_summary
+}
+
+plot_par <- function(par, true) {
+  df <- get_par(par, true)
+  lim <- range(as.matrix(df))
+  plot(df$true, df$mean, pch = 19, cex = 1, main = par, 
+       xlab = "True", ylab = "Estimated", 
+       xlim = lim, ylim = lim)
+  segments(x0 = df$true, y0 = df$`25%`, y1 = df$`75%`)
+  abline(a = 0, b = 1)
+}
+
+get_vec_par <- function(par, true) {
+  fit_summary <- lapply(seq_along(fits), function(i) { 
+    fit <- fits[[i]]
+    out <- summary(fit, pars = par)$summary[, c("mean", "25%", "75%"), drop=TRUE]
+    out <- as.data.frame(out)
+    out$true <- unlist(true[i,,drop=TRUE])
+    out$sim <- i
+    colnames(out) <- c("est", "lower", "upper", "true", "sim")
+    out
+  })
+  #fit_summary <- as.data.frame(fit_summary)
+  
+  do.call(rbind, fit_summary)
+}
+
+plot_vec_par <- function(par, true) {
+  df <- get_vec_par(par, true)
+  
+  ggplot(df, aes(x=true, y=est, ymin=lower, ymax=upper, col=as.factor(sim))) + 
+    geom_abline(intercept = 0, slope = 1) +
+    geom_point() +
+    geom_errorbar()
+}
+
+par(mfrow=c(2, 4))
+for(par in colnames(true_parameters)) {
+  plot_par(par, true_parameters)
+}
+
+par(mfrow=c(1, 4))
+for(par in colnames(true_weights)) {
+  plot_par(par, true_weights)
+}
+
+plot_vec_par("z_weights_obj", true_z_weights_obj)
+plot_vec_par("alpha", true_alpha)
+plot_vec_par("sigma_attention", true_sigma_attention)
 ```
 
