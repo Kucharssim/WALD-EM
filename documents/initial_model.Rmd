@@ -61,7 +61,7 @@ saliency <- read.csv(here::here("data", "saliency.csv")) %>% subset(image %in% i
 
 The simulation is based on six images from the real data set. Below are the pictures with their downsampled saliency maps and highlighted the centers and sizes of labelled objects on the scene.
 
-```{r}
+```{r, cache=TRUE}
 par(mfrow = c(1, 2))
 for(i in seq_along(image_name)) {
   img <- load_image(image_name[i])
@@ -92,7 +92,7 @@ load(here::here("documents", "initial_model_saves", "fits.Rdata"))
 
 
 
-```{r}
+```{r, cache=TRUE}
 get_par <- function(par, true) {
   fit_summary <- t(sapply(fits, function(fit) summary(fit, pars = par)$summary[, c("mean", "25%", "75%"), drop=TRUE]))
   fit_summary <- as.data.frame(fit_summary)
@@ -134,19 +134,35 @@ plot_vec_par <- function(par, true) {
     geom_point() +
     geom_errorbar()
 }
+```
 
+
+```{r, cache=TRUE}
 par(mfrow=c(2, 4))
 for(par in colnames(true_parameters)) {
   plot_par(par, true_parameters)
 }
+```
 
-par(mfrow=c(1, 4))
+
+```{r, cache=TRUE}
+par(mfrow=c(2, 2))
 for(par in colnames(true_weights)) {
   plot_par(par, true_weights)
 }
+```
 
+
+```{r, cache=TRUE}
 plot_vec_par("z_weights_obj", true_z_weights_obj)
+```
+
+```{r, cache=TRUE}
 plot_vec_par("alpha", true_alpha)
+```
+
+
+```{r, cache=TRUE}
 plot_vec_par("sigma_attention", true_sigma_attention)
 ```
 

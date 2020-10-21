@@ -1,7 +1,7 @@
 Initial Model
 ================
 Simon Kucharsky
-2020-10-19
+2020-10-21
 
 Here, we will provide some more information about the initial model
 reported in the article. Specifically, here we explain the basic of the
@@ -102,39 +102,40 @@ plot_vec_par <- function(par, true) {
     geom_point() +
     geom_errorbar()
 }
+```
 
+``` r
 par(mfrow=c(2, 4))
 for(par in colnames(true_parameters)) {
   plot_par(par, true_parameters)
 }
-
-par(mfrow=c(1, 4))
 ```
 
-![](initial_model_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
+![](initial_model_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
 
 ``` r
+par(mfrow=c(2, 2))
 for(par in colnames(true_weights)) {
   plot_par(par, true_weights)
 }
 ```
 
-![](initial_model_files/figure-gfm/unnamed-chunk-4-2.png)<!-- -->
+![](initial_model_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
 
 ``` r
 plot_vec_par("z_weights_obj", true_z_weights_obj)
 ```
 
-![](initial_model_files/figure-gfm/unnamed-chunk-4-3.png)<!-- -->
+![](initial_model_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
 
 ``` r
 plot_vec_par("alpha", true_alpha)
 ```
 
-![](initial_model_files/figure-gfm/unnamed-chunk-4-4.png)<!-- -->
+![](initial_model_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
 
 ``` r
 plot_vec_par("sigma_attention", true_sigma_attention)
 ```
 
-![](initial_model_files/figure-gfm/unnamed-chunk-4-5.png)<!-- -->
+![](initial_model_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->

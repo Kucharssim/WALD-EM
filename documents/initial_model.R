@@ -55,7 +55,7 @@ par(mfrow = c(1, 1))
 
 # draw from priors
 N_sim <- 20
-N_ppt <- 25
+N_ppt <- 20
 N_obj <- nrow(objects)
 
 if(!file.exists(here::here("documents", "initial_model_saves", "true.Rdata")) || overwrite_cache) {
@@ -63,7 +63,7 @@ if(!file.exists(here::here("documents", "initial_model_saves", "true.Rdata")) ||
   true_parameters <- data.frame(
     sigma_center = rgamma(N_sim, 5, 0.1),
     sigma_distance = rgamma(N_sim, 3, 0.1),
-    scale_obj = replicate(N_sim, trunc_normal_rng(0.25, 0.5, 0, Inf)),
+    scale_obj = replicate(N_sim, trunc_normal_rng(0.25, 0.25, 0, Inf)),
     mu_log_alpha = rnorm(N_sim, 0.25, 0.5),
     sigma_log_alpha = rgamma(N_sim, 2, 10),
     mu_log_sigma_attention = rnorm(N_sim, 3.75, 0.5),
@@ -107,7 +107,7 @@ design <- expand.grid(id_ppt = seq_len(N_ppt), id_img = seq_along(image_nr), sim
 design$image_nr <- image_nr[design$id_img]
 
 
-simulate_trial <- function(specs, t_max = 5, n_max = 25, n_min = 5){
+simulate_trial <- function(specs, t_max = 3, n_max = 20, n_min = 5){
   # browser()
   id_ppt <- specs[['id_ppt']]
   id_img <- specs[['id_img']]
