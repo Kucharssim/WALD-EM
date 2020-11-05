@@ -2,7 +2,7 @@ library(rstan)
 library(tidyverse)
 library(here)
 library(patchwork)
-
+library(progress)
 load(here::here("saves/stan_data.Rdata"))
 load(here::here("data", "cleaned_data.Rdata"))
 load(here::here("saves/fit_model.Rdata"))
@@ -104,17 +104,24 @@ xy <- left_join(x, y)
 rm(x, y)
 xy_sub <- subset(xy, .iter < 6)
 xy_sub$amplitude <- NA
+xy_sub$angle <- NA
 
+pb <- progress::progress_bar$new(total = nrow(xy_sub))
 for(i in seq_len(nrow(xy_sub))) {
   obs_now <- xy_sub[i, "obs", drop=TRUE]
-  d <- subset(data, obs == obs_now-1)
   
-  if(nrow(d) != 0) {
-    xy_sub$amplitude[i] <- sqrt((xy_sub[i, "x", drop=TRUE] - d$x)^2 + (xy_sub[i, "y", drop=TRUE] - d$y)^2)
+  if(data[data$obs==obs_now, "order", drop=TRUE] != 1L) {
+    d <- subset(data, obs == obs_now-1)
+    dx <- xy_sub[i, "x", drop=TRUE] - d$x
+    dy <- xy_sub[i, "y", drop=TRUE] - d$y
+    xy_sub$amplitude[i] <- sqrt(dx^2 + dy^2)
+    # do not forget: y axis is flipped in eye-tracking data, that's why we reverse the y components of the saccade vector
+    xy_sub$angle[i] <- atan2(-dy, dx)
   }
-  
-  if(i %% 500 == 0) cat(i, " ")
+  pb$tick()
 }
+
+saccades <- xy_sub[complete.cases(xy_sub),]
 
 ### out of sample predictions ----
 load(here::here("saves/posterior_predictives_out_sample.Rdata"))
