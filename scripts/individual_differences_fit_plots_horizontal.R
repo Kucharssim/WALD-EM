@@ -17,7 +17,7 @@ pars <- rstan::extract(fit)
 #                    )
 
 ### in sample predictions ----
-load(here::here("saves/posterior_predictives_in_sample.Rdata"))
+load(here::here("saves/posterior_predictives_in_sample_horizontal.Rdata"))
 posterior_predictives <- rstan::extract(posterior_predictives)
 
 data <- subset(df, train)
@@ -49,21 +49,21 @@ summary_durations <- durations %>%
   left_join(data)
 
 pp[['data_vs_pred']] <- 
-summary_durations %>% 
+  summary_durations %>% 
   group_by(id_ppt) %>% 
   summarise(mean_post = mean(mean), mean_data = mean(duration)) %>%
   ggplot(aes(y=mean_post, x=mean_data)) + 
-    geom_smooth(method = "lm") + 
-    geom_point() + 
-    xlab("Data") + 
-    ylab("Predictions") + 
-    # ggtitle(label = "Fixation durations", subtitle = "Means per participant") +
-    # coord_fixed() + 
-    coord_equal(xlim = c(0.35, 0.55), ylim = c(0.35, 0.6)) +
-    theme_bw()
+  geom_smooth(method = "lm") + 
+  geom_point() + 
+  xlab("Data") + 
+  ylab("Predictions") + 
+  # ggtitle(label = "Fixation durations", subtitle = "Means per participant") +
+  # coord_fixed() + 
+  coord_equal(xlim = c(0.35, 0.55), ylim = c(0.35, 0.6)) +
+  theme_bw()
 
 pp[['fixation_duration_vs_rank']] <-
-summary_durations %>% 
+  summary_durations %>% 
   group_by(id_ppt) %>% 
   summarise(mean_post = mean(mean), lower_post = mean(lower), upper_post = mean(upper),
             mean_data = mean(duration), lower_data = quantile(duration, 0.2), upper_data = quantile(duration, 0.8)) %>% 
@@ -71,13 +71,13 @@ summary_durations %>%
   pivot_longer(cols = -c(id_ppt, rank_ppt), names_pattern = "(.*)_(.*)", names_to = c("stat", "source")) %>%
   pivot_wider(names_from = stat, values_from = value) %>% 
   ggplot(aes(x=rank_ppt, y=mean, ymin=lower, ymax=upper, color=source)) + 
-    geom_point(position = position_dodge(0.5), size = 1.5) + 
-    geom_errorbar(position = position_dodge(0.5)) + 
-    ylab("Fixation duration (sec)") + 
-    xlab("Participant rank") +
-    scale_y_continuous(limits = c(0, NA)) +
-    scale_color_discrete(name = "", labels = c("Data", "Predictions")) +
-    theme_bw()
+  geom_point(position = position_dodge(0.5), size = 1.5) + 
+  geom_errorbar(position = position_dodge(0.5)) + 
+  ylab("Fixation duration (sec)") + 
+  xlab("Participant rank") +
+  scale_y_continuous(limits = c(0, NA)) +
+  scale_color_discrete(name = "", labels = c("Data", "Predictions")) +
+  theme_bw()
 
 # pp$data_vs_pred + pp$fixation_duration_vs_rank
 plots_in_sample[['fixation_duration']] <- pp
@@ -117,7 +117,7 @@ for(i in seq_len(nrow(xy_sub))) {
 }
 
 ### out of sample predictions ----
-load(here::here("saves/posterior_predictives_out_sample.Rdata"))
+load(here::here("saves/posterior_predictives_out_sample_horizontal.Rdata"))
 posterior_predictives <- rstan::extract(posterior_predictives)
 
 data <- subset(df, !train)
@@ -186,4 +186,4 @@ plots_in_sample$fixation_duration$data_vs_pred +
   plots_out_sample$fixation_duration$data_vs_pred + 
   plots_out_sample$fixation_duration$fixation_duration_vs_rank
 
-ggsave(here::here("figures/fit_model/individual_fixation_durations.png"), width = 7, height = 4)
+ggsave(here::here("figures/fit_model_horizontal/individual_fixation_durations_horizontal.png"), width = 7, height = 4)
