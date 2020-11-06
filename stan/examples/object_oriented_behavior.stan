@@ -26,15 +26,16 @@ parameters{
 transformed parameters{
   vector[N_objects] sigma_x = delta * objects_width_2;
   vector[N_objects] sigma_y = delta * objects_height_2;
+  real<lower=0> nu[N_obs];
+  // compute drift rate at the specific location
+  for(t in 1:N_obs) nu[t] = -log_integral_attention_mixture_2d(x[t], y[t], weights, objects_center_x, sigma_x, objects_center_y, sigma_y, sigma_attention, sigma_attention);
 }
 model{
   for(t in 1:N_obs){
-    // compute drift rate at the specific location
-    real nu = -log_integral_attention_mixture_2d(x[t], y[t], weights, objects_center_x, sigma_x, objects_center_y, sigma_y, sigma_attention, sigma_attention);
     // model for fixation locations
     target += mixture_trunc_normals(x[t], y[t], weights, objects_center_x, sigma_x, objects_center_y, sigma_y, 0.0, 800.0, 0.0, 600.0);
     // model for fixation durations
-    duration[t] ~ wald(alpha, nu);
+    duration[t] ~ wald(alpha, nu[t]);
   }
   
   // priors
@@ -42,5 +43,10 @@ model{
   sigma_attention ~ gamma(2, 0.1);
   delta ~ exponential(1);
   weights ~ dirichlet(rep_vector(2, N_objects));
+}
+generated quantities {
+  real<lower=0> mean_duration_pred[N_obs];
+  
+  for(t in 1:N_obs) mean_duration_pred[t] = alpha / nu[t];
 }
 
