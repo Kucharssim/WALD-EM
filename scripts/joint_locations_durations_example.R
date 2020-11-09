@@ -19,9 +19,7 @@ bfcor <- function(r, n) {
 # load data and fitted model
 load(here::here("data", "cleaned_data.Rdata"))
 load(here::here("saves", "fit_model.Rdata"))
-# load(here::here("saves", "stan_data.Rdata"))
 
-summary_pars <- summary(fit)$summary
 # expose stan functions
 #source(here::here("R", "expose_helpers_stan.R"))
 source(here::here("R", "colours.R"))
@@ -66,7 +64,7 @@ stan_data <- list(
   })
 )
 
-
+# recalculate drift rates for each observation
 gqs_model <- rstan::stan_model(here::here("stan", "nu_objects_central_distance_saliency.stan"))
 
 mcmc <- as.data.frame(fit)
@@ -77,28 +75,32 @@ mcmc <- mcmc %>% dplyr::select(sigma_center, sigma_distance, scale_obj,
                                dplyr::starts_with("log_weights"),
                                dplyr::starts_with("alpha"),
                                dplyr::starts_with("sigma_attention"))
-mcmc <- mcmc %>% dplyr::sample_n(size = 100) # generate 100 predictives for every data point
+mcmc <- mcmc %>% dplyr::sample_n(size = 2000) # generate 2000 predictives for every data point
 
 posterior_predictives <- rstan::gqs(gqs_model, data = stan_data, draws = mcmc)
 
-# rm(fit, mcmc, stan_data, saliency_log) # unload memory a little
-
 data <- data.frame(
-  id_ppt = as.factor(stan_data$id_ppt),
-  id_img = as.factor(stan_data$id_img),
+  id_ppt = as.factor(df_sub$id_ppt),
+  id_img = as.factor(df_sub$id_img),
   train  = df_sub$train,
-  x      = stan_data$x,
-  y      = stan_data$y,
+  x      = df_sub$x,
+  y      = df_sub$y,
   duration = stan_data$duration,
   mean_duration_rep = summary(posterior_predictives, "duration_mean")$summary[, "mean"] %>% unname()
 )
+rm(fit, mcmc, stan_data, saliency_log, posterior_predictives, gqs_model) # unload memory a little
 
+data_combined <- data %>% 
+  mutate(group = ifelse(train, "In sample", "Out of sample")) %>%
+  bind_rows(data %>% mutate(group = "Combined")) %>%
+  mutate(group = factor(group, levels = c("In sample", "Out of sample", "Combined")))
 
-data %>% 
-  mutate(train = ifelse(train, "In sample", "Out of sample")) %>%
-  bind_rows(data %>% mutate(train = "Combined")) %>%
-  mutate(train = factor(train, levels = c("In sample", "Out of sample", "Combined"))) %>%
-  group_by(id_ppt, train) %>% 
+# data %>% 
+#   mutate(train = ifelse(train, "In sample", "Out of sample")) %>%
+#   bind_rows(data %>% mutate(train = "Combined")) %>%
+#   mutate(train = factor(train, levels = c("In sample", "Out of sample", "Combined"))) %>%
+data_combined %>%
+  group_by(id_ppt, group) %>% 
   summarise(cor = cor(duration, mean_duration_rep), 
             n = n(),
             p.value = cor.test(duration, mean_duration_rep)$p.value, 
@@ -112,8 +114,8 @@ data %>%
   #           percent_nul_3 = mean(log_bf < log(1/3)),
   #           total_alternative_log   = sum(log_bf),
   #           total_alternative       = exp(total_alternative_log))
-  arrange(train, cor) %>% 
-  print(n = 200) %>%
+  # arrange(train, cor) %>% 
+  # print(n = 200) %>%
   ggplot(aes(x = cor, y = log_bf)) +
     geom_abline(slope = 0, intercept = 0, size = 0.5, linetype = 2) +
     geom_abline(slope = 0, intercept = log(c(1/3, 3)), size = 0.5, linetype = 3) + 
@@ -123,7 +125,7 @@ data %>%
     scale_x_continuous(breaks = seq(0, 0.5, by = 0.1), labels = gsub("0.", ".", 0:5/10)) +
     xlab("Cor(predicted vs. observed fixation duration)") + 
     ylab(expression(log (BF[+0]))) +
-    facet_wrap(~train)
+    facet_wrap(~group)
 # train           percent_cor_positive mean_cor percent_alt percent_alt_3 percent_nul_3 total_alternative_log total_alternative
 #   <fct>                        <dbl>    <dbl>       <dbl>         <dbl>         <dbl>                 <dbl>             <dbl>
 # 1 In sample                    0.936    0.137       0.596         0.362        0.0426                  54.9           6.65e23
@@ -131,48 +133,68 @@ data %>%
 # 3 Combined                     1        0.148       0.830         0.638        0.0213                 142.            7.36e61
 ggsave(filename = here("figures/fit_model/joint_bf.png"), width = 10, height = 6)
 
-data %>%
-  mutate(train = ifelse(train, "In sample", "Out of sample")) %>%
-  ggplot(aes(mean_duration_rep, duration, color = as.factor(id_ppt))) +
-  geom_smooth(method = "lm", se = FALSE) +
-  geom_point(alpha = 0.3, size = 0.1) +
+data_combined %>%
+  ggplot(aes(x = mean_duration_rep, y = duration, color = as.factor(id_ppt))) +
+  geom_point(alpha = 0.15, size = 0.15) +
+  geom_smooth(method = "lm", se = FALSE, size = 0.5) +
   ylim(NA, 1) + xlim(NA, 1) +
-  ylab("Posterior predictives of Fixation duration (sec)") + 
-  xlab("Fixation duration (sec)") +
+  xlab("Posterior predictives of Fixation duration (sec)") + 
+  ylab("Fixation duration (sec)") +
   theme(legend.position = "none") +
-  facet_wrap(~train)
+  facet_wrap(~group)
+ggsave(filename = here("figures/fit_model/durations_scatter.png"), width = 10, height = 6)
 
-plyr::ddply(data, "id_ppt", function(d) {
+
+plyr::ddply(data_combined, c("id_ppt","group"), function(d) {
   fit <- lm(duration~mean_duration_rep, d)
   broom::tidy(fit)
 }) %>% 
   filter(term == "mean_duration_rep") %>%
   print(digits=3)
 
-# fit_brm <- brms::brm(duration~(duration|id_ppt), data = data, iter=50, warmup =500)
-# fit_brm
-
 
 # make tiles
 get_tile <- function(fix, width = 50, min = 0, max = 800) {
   cut(fix, breaks = seq(min, max, by = width), labels = seq_len(ceiling((max-min)/width)))
 }
-data$tile_x <- get_tile(data$x, 25, 0, 800)
-data$tile_y <- get_tile(data$y, 25, 0, 600)
-data$tile   <- interaction(data$tile_x, data$tile_y, sep = "_")
+data_combined$tile_x <- get_tile(data_combined$x, 25, 0, 800)
+data_combined$tile_y <- get_tile(data_combined$y, 25, 0, 600)
+data_combined$tile   <- interaction(data_combined$tile_x, data_combined$tile_y, sep = "_")
 
-data_tiled <- data %>% 
-  group_by(id_img, tile) %>%
+data_combined_tiled <- data_combined %>% 
+  group_by(id_img, group, tile) %>%
   summarise(mean_duration = mean(duration),
             mean_duration_rep = mean(mean_duration_rep), 
             frequency_fixated = n())
 
-data_tiled %>%
-  group_by(id_img) %>%
+data_combined_tiled %>%
+  group_by(id_img, group) %>%
   summarise(cor = cor(mean_duration, mean_duration_rep), 
             n = n(),
             p.value = cor.test(mean_duration, mean_duration_rep)$p.value,
-            bf = bfcor(cor, n)) %>%
-  summary()
+            log_bf = log(bfcor(cor, n))) %>%
+  arrange(group, cor) %>%
+  print(n = 100) %>%
+  ggplot(aes(x = cor, y = log_bf)) +
+  geom_abline(slope = 0, intercept = 0, size = 0.5, linetype = 2) +
+  geom_abline(slope = 0, intercept = log(c(1/3, 3)), size = 0.5, linetype = 3) + 
+  #geom_abline(slope = 1e6, intercept = 0, size = 0.5, linetype = 2) +
+  geom_point() +
+  geom_rug() +
+  scale_x_continuous(breaks = seq(0, 0.5, by = 0.1), labels = gsub("0.", ".", 0:5/10)) +
+  xlab("Cor(predicted vs. observed mean fixation duration)") + 
+  ylab(expression(log (BF[+0]))) +
+  facet_wrap(~group)
+ggsave(filename = here("figures/fit_model/joint_bf_tiled.png"), width = 10, height = 6)
 
-plot(data_tiled$mean_duration_rep, data_tiled$mean_duration)
+
+data_combined_tiled %>%
+  ggplot(aes(x = mean_duration_rep, y = mean_duration, color = as.factor(id_img))) +
+  geom_point(alpha = 0.15, size = 0.15) +
+  geom_smooth(method = "lm", se = FALSE, size = 0.5) +
+  ylim(NA, 1) + xlim(NA, 1) +
+  xlab("Posterior predictives of mean fixation duration (sec)") + 
+  ylab("Mean fixation duration (sec)") +
+  theme(legend.position = "none") +
+  facet_wrap(~group)
+ggsave(filename = here("figures/fit_model/durations_scatter_tiled.png"), width = 10, height = 6)
