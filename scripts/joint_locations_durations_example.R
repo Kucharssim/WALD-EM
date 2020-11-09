@@ -184,6 +184,7 @@ plyr::ddply(data_combined, c("id_ppt","group"), function(d) {
   print(digits=3)
 
 
+
 # make tiles
 get_tile <- function(fix, width = 50, min = 0, max = 800) {
   cut(fix, breaks = seq(min, max, by = width), labels = seq_len(ceiling((max-min)/width)))
@@ -192,13 +193,26 @@ data_combined$tile_x <- get_tile(data_combined$x, 25, 0, 800)
 data_combined$tile_y <- get_tile(data_combined$y, 25, 0, 600)
 data_combined$tile   <- interaction(data_combined$tile_x, data_combined$tile_y, sep = "_")
 
+xy_rep$tile_x <- get_tile(xy_rep$x_rep, 25, 0, 800)
+xy_rep$tile_y <- get_tile(xy_rep$y_rep, 25, 0, 600)
+xy_rep$tile   <- interaction(xy_rep$tile_x, xy_rep$tile_y, sep = "_")
 
+# calculate probability of fixating tiles per image based on the model
+probs_tile <- plyr::ddply(xy_rep, c("id_img"), 
+                          function(d) {
+                            # browser()
+                            data.frame(tile = levels(xy_rep$tile),
+                                       freq = as.vector(table(d$tile))) %>%
+                              mutate(prob     = freq/nrow(d)) %>%
+                              mutate(log_prob = log(prob))
+                          })
 
 data_combined_tiled <- data_combined %>% 
   group_by(id_img, group, tile) %>%
   summarise(mean_duration = mean(duration),
-            mean_duration_rep = mean(mean_duration_rep), 
-            frequency_fixated = n())
+            mean_duration_rep = mean(mean_duration_rep)) %>%
+  ungroup() %>%
+  left_join(probs_tile, by = c("id_img", "tile"))
 
 data_combined_tiled %>%
   group_by(id_img, group) %>%
@@ -231,3 +245,43 @@ data_combined_tiled %>%
   theme(legend.position = "none") +
   facet_wrap(~group)
 ggsave(filename = here("figures/fit_model/durations_scatter_tiled.png"), width = 10, height = 6)
+
+
+p1 <- data_combined_tiled %>%
+  ggplot(aes(x = log_prob, y = mean_duration, color = as.factor(id_img))) +
+  geom_point(alpha = 0.15, size = 0.15) +
+  geom_smooth(method = "lm", se = FALSE, size = 0.5) +
+  ylim(NA, 1) +
+  ylab("") + xlab("") +
+  ggtitle("Data") + 
+  theme(legend.position = "none") +
+  facet_wrap(~group)
+
+p2 <- data_combined_tiled %>%
+  ggplot(aes(x = log_prob, y = mean_duration_rep, color = as.factor(id_img))) +
+  geom_point(alpha = 0.15, size = 0.15) +
+  geom_smooth(method = "lm", se = FALSE, size = 0.5) +
+  ylim(NA, 1) +
+  ylab("") + xlab("") +
+  ggtitle("Model") + 
+  theme(legend.position = "none") +
+  facet_wrap(~group)
+
+ylabel <- ggplot(data.frame(x=0.5, y=0.5, text = "Mean fixation duration (sec)"), 
+                 aes(x=x,y=y,label=text)) + 
+  ylim(0, 1) +
+  xlim(0, 1) +
+  geom_text(angle = 90, size = 7) +
+  theme_void()
+
+xlabel <- ggplot(data.frame(x=0.5, y=0.5, text = "Log probability of fixation"), 
+                 aes(x=x,y=y,label=text)) + 
+  ylim(0, 1) +
+  xlim(0, 1) +
+  geom_text(size = 7) +
+  theme_void()
+
+( (ylabel | p1 / p2)                  + patchwork::plot_layout(widths = c(1, 20)) ) / 
+( (patchwork::plot_spacer() | xlabel) + patchwork::plot_layout(widths = c(1, 20)) ) +
+  patchwork::plot_layout(heights = c(20, 1))
+ggsave(filename = here("figures/fit_model/durations_on_location_prob_scatter.png"), width = 10, height = 8)
