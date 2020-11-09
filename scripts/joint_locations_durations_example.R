@@ -13,7 +13,13 @@ ggplot2::theme_update(axis.ticks.length = ggplot2::unit(6, "pt"),
 
 bfcor <- function(r, n) {
   # one-sided bayes factor for correlations with prior: stretched beta(10, 10)<0, 1>
-  bstats::bcor.testSumStat(n, r, "greater", kappa = 0.1)[["greater"]][["bf"]]
+  if(length(n) == 1) n <- rep(n, length(r))
+  out <- numeric(length = length(r))
+  for(i in 1:length(r)){
+    out[i] <- bstats::bcor.testSumStat(n[i], r[i], "greater", kappa = 0.1)[["greater"]][["bf"]]
+  }
+  
+  out
 }
 
 # load data and fitted model
@@ -65,7 +71,7 @@ stan_data <- list(
 )
 
 # recalculate drift rates for each observation
-gqs_model <- rstan::stan_model(here::here("stan", "nu_objects_central_distance_saliency.stan"))
+nu_model <- rstan::stan_model(here::here("stan", "nu_objects_central_distance_saliency.stan"))
 
 mcmc <- as.data.frame(fit)
 #mcmc <- mcmc[, c(1:360, 363:457)]
@@ -75,20 +81,45 @@ mcmc <- mcmc %>% dplyr::select(sigma_center, sigma_distance, scale_obj,
                                dplyr::starts_with("log_weights"),
                                dplyr::starts_with("alpha"),
                                dplyr::starts_with("sigma_attention"))
-mcmc <- mcmc %>% dplyr::sample_n(size = 2000) # generate 2000 predictives for every data point
+mcmc <- mcmc %>% dplyr::sample_n(size = 1000) # generate 1000 predictives for every data point
 
-posterior_predictives <- rstan::gqs(gqs_model, data = stan_data, draws = mcmc)
+nu_generated <- rstan::gqs(nu_model, data = stan_data, draws = mcmc)
 
 data <- data.frame(
+  obs    = seq_len(nrow(df_sub)),
   id_ppt = as.factor(df_sub$id_ppt),
   id_img = as.factor(df_sub$id_img),
   train  = df_sub$train,
   x      = df_sub$x,
   y      = df_sub$y,
   duration = stan_data$duration,
-  mean_duration_rep = summary(posterior_predictives, "duration_mean")$summary[, "mean"] %>% unname()
+  mean_duration_rep = summary(nu_generated, "duration_mean")$summary[, "mean"] %>% unname()
 )
-rm(fit, mcmc, stan_data, saliency_log, posterior_predictives, gqs_model) # unload memory a little
+
+# generate posterior predictives
+gqs_model <- rstan::stan_model(here::here("stan", "gqs_objects_central_distance_saliency.stan"))
+posterior_predictives <- rstan::gqs(gqs_model, data = stan_data, draws = mcmc)
+posterior_predictives <- rstan::extract(posterior_predictives)
+
+xy_rep <- list()
+for(i in c("x_rep", "y_rep")) {
+  xy_rep[[i]] <- posterior_predictives[[i]] %>% 
+    as_tibble() %>% 
+    pivot_longer(cols = everything(), 
+                 names_to = "obs", values_to = i, 
+                 names_prefix = "V") %>%
+    mutate(obs = as.integer(obs)) %>%
+    group_by(obs) %>%
+    mutate(.iter = seq_len(n())) %>%
+    ungroup() %>%
+    subset(.iter <= 100)
+}
+xy_rep <- full_join(xy_rep[['x_rep']], xy_rep[['y_rep']])
+xy_rep <- left_join(
+  xy_rep,
+  data %>% select(obs, id_ppt, id_img, train)
+)
+rm(fit, mcmc, stan_data, saliency_log, nu_generated, posterior_predictives, gqs_model) # unload memory a little
 
 data_combined <- data %>% 
   mutate(group = ifelse(train, "In sample", "Out of sample")) %>%
@@ -106,7 +137,7 @@ data_combined %>%
             p.value = cor.test(duration, mean_duration_rep)$p.value, 
             log_bf = log(bfcor(cor, n))) %>%
   ungroup() %>%
-  # group_by(train) %>%
+  # group_by(group) %>%
   # summarise(percent_cor_positive         = mean(cor > 0),
   #           mean_cor                     = mean(cor),
   #           percent_alt = mean(log_bf > 0),
@@ -160,6 +191,8 @@ get_tile <- function(fix, width = 50, min = 0, max = 800) {
 data_combined$tile_x <- get_tile(data_combined$x, 25, 0, 800)
 data_combined$tile_y <- get_tile(data_combined$y, 25, 0, 600)
 data_combined$tile   <- interaction(data_combined$tile_x, data_combined$tile_y, sep = "_")
+
+
 
 data_combined_tiled <- data_combined %>% 
   group_by(id_img, group, tile) %>%
